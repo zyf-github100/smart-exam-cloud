@@ -33,7 +33,7 @@ public class UserController {
         }
         UserProfile profile = userProfileService.findById(userId);
         if (profile == null) {
-            throw new BizException(ErrorCode.NOT_FOUND, "用户不存在");
+            throw new BizException(ErrorCode.NOT_FOUND, "User not found");
         }
         return ApiResponse.ok(Map.of("id", profile.getId(), "role", role, "profile", profile));
     }
@@ -42,7 +42,7 @@ public class UserController {
     public ApiResponse<UserProfile> detail(@PathVariable String id) {
         UserProfile profile = userProfileService.findById(id);
         if (profile == null) {
-            throw new BizException(ErrorCode.NOT_FOUND, "用户不存在");
+            throw new BizException(ErrorCode.NOT_FOUND, "User not found");
         }
         return ApiResponse.ok(profile);
     }
@@ -52,4 +52,3 @@ public class UserController {
         return ApiResponse.ok(userProfileService.listAll());
     }
 }
-
