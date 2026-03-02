@@ -1,0 +1,45 @@
+server:
+  port: 9000
+
+spring:
+  application:
+    name: gateway-service
+  cloud:
+    gateway:
+      routes:
+        - id: auth-service
+          uri: http://localhost:9001
+          predicates:
+            - Path=/api/v1/auth/**
+        - id: user-service
+          uri: http://localhost:9100
+          predicates:
+            - Path=/api/v1/users/**
+        - id: question-service
+          uri: http://localhost:9200
+          predicates:
+            - Path=/api/v1/questions/**,/api/v1/papers/**
+        - id: exam-service
+          uri: http://localhost:9300
+          predicates:
+            - Path=/api/v1/exams/**,/api/v1/sessions/**
+        - id: grading-service
+          uri: http://localhost:9400
+          predicates:
+            - Path=/api/v1/grading/**
+        - id: analysis-service
+          uri: http://localhost:9500
+          predicates:
+            - Path=/api/v1/reports/**
+
+security:
+  jwt:
+    secret: "smart-exam-cloud-secret-key-must-be-at-least-32-bytes"
+    expiration-seconds: 7200
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+

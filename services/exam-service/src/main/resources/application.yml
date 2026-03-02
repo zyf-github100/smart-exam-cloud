@@ -1,0 +1,22 @@
+server:
+  port: 9300
+
+spring:
+  application:
+    name: exam-service
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+snowflake:
+  worker-id: 3
+  datacenter-id: 1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+

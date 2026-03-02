@@ -1,0 +1,22 @@
+server:
+  port: 9400
+
+spring:
+  application:
+    name: grading-service
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+
+snowflake:
+  worker-id: 4
+  datacenter-id: 1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+

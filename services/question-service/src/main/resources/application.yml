@@ -1,0 +1,17 @@
+server:
+  port: 9200
+
+spring:
+  application:
+    name: question-service
+
+snowflake:
+  worker-id: 2
+  datacenter-id: 1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
