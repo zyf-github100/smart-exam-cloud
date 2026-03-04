@@ -21,6 +21,7 @@
         <module>exam-service</module>
         <module>grading-service</module>
         <module>analysis-service</module>
+        <module>admin-service</module>
     </modules>
 
     <dependencies>

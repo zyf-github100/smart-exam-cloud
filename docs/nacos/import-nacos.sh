@@ -17,6 +17,7 @@ DATA_IDS=(
   "exam-service.yaml"
   "grading-service.yaml"
   "analysis-service.yaml"
+  "admin-service.yaml"
 )
 
 TOKEN=""

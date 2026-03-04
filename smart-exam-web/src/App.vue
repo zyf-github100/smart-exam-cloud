@@ -7,6 +7,7 @@ import {
   Histogram,
   Notebook,
   Reading,
+  Setting,
   TrendCharts,
 } from '@element-plus/icons-vue'
 import ConnectionPanel from './components/console/ConnectionPanel.vue'
@@ -15,6 +16,7 @@ import PaperTab from './components/console/PaperTab.vue'
 import ExamTab from './components/console/ExamTab.vue'
 import GradingTab from './components/console/GradingTab.vue'
 import ReportTab from './components/console/ReportTab.vue'
+import AdminTab from './components/console/AdminTab.vue'
 
 const tabs = [
   {
@@ -62,6 +64,15 @@ const tabs = [
     description: '查看分数分布和题目正确率，为教学优化与命题调整提供依据。',
     guide: ['先用考试 ID 拉取分布数据', 'TopN 建议从 10 开始观察', '数据不更新时回到阅卷页确认任务已完成'],
   },
+  {
+    name: 'admin',
+    label: '管理员中心',
+    short: 'A',
+    icon: Setting,
+    tagline: '企业级治理与审计',
+    description: '统一处理用户治理、角色权限、系统配置和审计日志，强化平台安全和运维可控性。',
+    guide: ['先刷新总览确认平台状态', '用户变更时务必填写原因', '所有高风险动作都在审计日志复核'],
+  },
 ]
 
 const tabComponents = {
@@ -70,6 +81,7 @@ const tabComponents = {
   exam: ExamTab,
   grading: GradingTab,
   report: ReportTab,
+  admin: AdminTab,
 }
 
 const activeTab = ref('question')
@@ -223,7 +235,7 @@ onBeforeUnmount(() => {
               <strong>推荐路径</strong>
             </div>
           </template>
-          <p class="guide-path">题库中心 → 试卷编排 → 考试会话 → 阅卷中心 → 分析报表</p>
+          <p class="guide-path">题库中心 → 试卷编排 → 考试会话 → 阅卷中心 → 分析报表 → 管理员中心</p>
         </el-card>
       </aside>
     </main>

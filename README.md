@@ -23,6 +23,7 @@ smart-exam-cloud/
     exam-service/
     grading-service/
     analysis-service/
+    admin-service/
   docs/
     nacos/
       common.yaml
@@ -81,6 +82,19 @@ smart-exam-cloud/
   - 沉淀会话-题目得分快照（`a_session_question_score`）
   - `GET /api/v1/reports/exams/{examId}/score-distribution`
   - `GET /api/v1/reports/exams/{examId}/question-accuracy-top`（基于真实判分结果聚合）
+
+- 管理 `admin-service`（`user_db + admin_db` + Redis）
+  - `GET /api/v1/admin/overview`
+  - `GET /api/v1/admin/users`
+  - `PUT /api/v1/admin/users/{userId}/status`
+  - `PUT /api/v1/admin/users/{userId}/role`
+  - `PUT /api/v1/admin/users/{userId}/password/reset`
+  - `GET /api/v1/admin/roles`
+  - `GET /api/v1/admin/permissions`
+  - `PUT /api/v1/admin/roles/{roleCode}/permissions`
+  - `GET /api/v1/admin/configs`
+  - `PUT /api/v1/admin/configs/{configKey}`
+  - `GET /api/v1/admin/audits`
 
 ## 3. 本地启动
 
@@ -147,7 +161,8 @@ mvn clean package -DskipTests
 4. `exam-service`（9300）
 5. `grading-service`（9400）
 6. `analysis-service`（9500）
-7. `gateway-service`（9000）
+7. `admin-service`（9600）
+8. `gateway-service`（9000）
 
 ## 4. 快速联调
 

@@ -37,6 +37,7 @@ flowchart LR
   GW --> EXAM[exam-service]
   GW --> GRADING[grading-service]
   GW --> ANALYSIS[analysis-service]
+  GW --> ADMIN[admin-service]
 
   AUTH --> UDB[(user_db)]
   USER --> UDB
@@ -44,6 +45,7 @@ flowchart LR
   EXAM --> EDB[(exam_db)]
   GRADING --> GDB[(grading_db)]
   ANALYSIS --> ADB[(analysis_db)]
+  ADMIN --> ADM[(admin_db)]
 
   AUTH --> Redis[(Redis)]
   USER --> Redis
@@ -51,6 +53,7 @@ flowchart LR
   EXAM --> Redis
   GRADING --> Redis
   ANALYSIS --> Redis
+  ADMIN --> Redis
 
   EXAM -->|exam.submitted| MQ[(RabbitMQ)]
   MQ --> GRADING
@@ -64,6 +67,7 @@ flowchart LR
   EXAM -.-> Nacos
   GRADING -.-> Nacos
   ANALYSIS -.-> Nacos
+  ADMIN -.-> Nacos
 ```
 
 ## 4. 模块职责与边界
@@ -113,7 +117,14 @@ flowchart LR
 - 报表服务（分数分布、基于真实判分聚合的 TopN）。
 - 报表缓存与失效。
 
-### 4.8 common 模块
+### 4.8 admin-service
+
+- 管理员域统一入口：用户治理、角色权限、系统配置、审计检索。
+- 维护角色-权限矩阵（`sys_role`、`sys_permission`、`sys_role_permission`）。
+- 记录高风险操作审计日志（`sys_audit_log`）。
+- 提供运营总览聚合指标与短 TTL 缓存。
+
+### 4.9 common 模块
 
 - `common-core`：统一响应、错误码、雪花 ID、事件模型。
 - `common-web`：全局异常处理。
@@ -129,6 +140,7 @@ flowchart LR
 - `/api/v1/exams/**`、`/api/v1/sessions/**` -> `exam-service`
 - `/api/v1/grading/**` -> `grading-service`
 - `/api/v1/reports/**` -> `analysis-service`
+- `/api/v1/admin/**` -> `admin-service`
 
 响应统一格式：
 
@@ -144,6 +156,7 @@ flowchart LR
 - `exam_db`：`e_exam`、`e_exam_session`、`e_answer`
 - `grading_db`：`g_grading_task`、`g_question_score`
 - `analysis_db`：`a_score`、`a_session_question_score`
+- `admin_db`：`sys_role`、`sys_permission`、`sys_role_permission`、`sys_audit_log`、`sys_config`
 
 关键约束：
 
@@ -152,6 +165,9 @@ flowchart LR
 - `g_grading_task(session_id)` 唯一。
 - `a_score(session_id)` 唯一。
 - `a_session_question_score(session_id, question_id)` 唯一。
+- `sys_role(role_code)` 唯一。
+- `sys_permission(permission_code)` 唯一。
+- `sys_role_permission(role_code, permission_code)` 唯一。
 
 设计原则：
 
@@ -166,6 +182,7 @@ Redis 主要用途：
 - 防重幂等键。
 - 详情与列表缓存。
 - 报表缓存。
+- 管理员概览/权限矩阵缓存。
 
 典型策略：
 
@@ -175,6 +192,7 @@ Redis 主要用途：
 - 交卷锁：30 秒窗口。
 - 人工评分防重：8 秒窗口。
 - 事件去重：7 天窗口。
+- 管理员变更操作防重：5 秒窗口。
 
 并发策略：
 
@@ -231,8 +249,8 @@ Redis 主要用途：
 
 风险：
 
-- 当前密码校验为明文，生产不可用。
-- 细粒度角色权限控制尚未全面落地。
+- 认证服务当前兼容历史明文密码并在登录时迁移为 BCrypt，仍需完成全量离线迁移与强策略校验。
+- 管理员服务已落地角色权限矩阵，但业务服务侧细粒度权限校验仍需补齐。
 
 建议：
 
@@ -272,7 +290,8 @@ P0：
 
 - 密码哈希化与认证安全加固。
 - MQ 可靠投递与消费失败补偿机制（重试与 DLQ）[已完成，2026-03-04]。
-- 网关之外的服务级权限校验补齐。
+- 管理员中心（用户治理、角色权限、系统配置、审计日志）[已完成，2026-03-04]。
+- 网关之外的服务级权限校验补齐（除 admin-service 外）。
 
 P1：
 

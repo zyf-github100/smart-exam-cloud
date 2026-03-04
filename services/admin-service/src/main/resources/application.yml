@@ -1,0 +1,52 @@
+server:
+  port: 9600
+
+spring:
+  application:
+    name: admin-service
+  config:
+    import:
+      - 'optional:nacos:common.yaml?group=${NACOS_GROUP:DEFAULT_GROUP}&refreshEnabled=true'
+      - 'optional:nacos:${spring.application.name}.yaml?group=${NACOS_GROUP:DEFAULT_GROUP}&refreshEnabled=true'
+  cloud:
+    nacos:
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:192.168.242.10:8848}
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:nacos}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:192.168.242.10:8848}
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:nacos}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_GROUP:DEFAULT_GROUP}
+        file-extension: yaml
+  datasource:
+    url: ${MYSQL_URL:jdbc:mysql://192.168.242.10:3306/user_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: ${REDIS_HOST:192.168.242.10}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DB_ADMIN:7}
+      timeout: 2s
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+
+snowflake:
+  worker-id: 7
+  datacenter-id: 1
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

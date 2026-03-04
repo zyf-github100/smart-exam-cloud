@@ -17,7 +17,8 @@ $dataIds = @(
     "question-service.yaml",
     "exam-service.yaml",
     "grading-service.yaml",
-    "analysis-service.yaml"
+    "analysis-service.yaml",
+    "admin-service.yaml"
 )
 
 $token = ""

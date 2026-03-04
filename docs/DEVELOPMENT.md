@@ -24,6 +24,7 @@ smart-exam-cloud/
     exam-service
     grading-service
     analysis-service
+    admin-service
   smart-exam-web/         # Vue3 + Vite 前端
   docs/
     nacos/                # Nacos 配置模板
@@ -84,7 +85,7 @@ docker exec -i smart-exam-mysql mysql -uroot -proot < docs/sql/02_core_tables.sq
 - `common.yaml`
 - `${spring.application.name}.yaml`
 
-配置模板位于 `docs/nacos/`，需要导入这 8 个 Data ID：
+配置模板位于 `docs/nacos/`，需要导入这 9 个 Data ID：
 
 - `common.yaml`
 - `gateway-service.yaml`
@@ -94,6 +95,7 @@ docker exec -i smart-exam-mysql mysql -uroot -proot < docs/sql/02_core_tables.sq
 - `exam-service.yaml`
 - `grading-service.yaml`
 - `analysis-service.yaml`
+- `admin-service.yaml`
 
 详细步骤见：`docs/nacos/README.md`
 
@@ -130,7 +132,8 @@ mvn clean package -DskipTests
 4. `exam-service` (`9300`)
 5. `grading-service` (`9400`)
 6. `analysis-service` (`9500`)
-7. `gateway-service` (`9000`)
+7. `admin-service` (`9600`)
+8. `gateway-service` (`9000`)
 
 ### 8.3 命令行启动示例
 
@@ -207,6 +210,34 @@ curl http://localhost:9000/api/v1/users/me \
 
 - `exam-service` 已启用定时调度，按时间窗自动更新状态：`NOT_STARTED -> RUNNING -> FINISHED`。
 - 除定时任务外，读取考试详情时也会做一次状态兜底同步，避免缓存状态滞后。
+
+### 10.6 管理员中心联调检查
+
+1. 使用管理员账号登录：
+
+```bash
+curl -X POST http://localhost:9000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d "{\"username\":\"admin\",\"password\":\"123456\"}"
+```
+
+2. 使用管理员 Token 调用概览接口：
+
+```bash
+curl http://localhost:9000/api/v1/admin/overview \
+  -H "Authorization: Bearer <admin-token>"
+```
+
+3. 验证角色权限配置写入（示例：更新 TEACHER 角色权限）：
+
+```bash
+curl -X PUT http://localhost:9000/api/v1/admin/roles/TEACHER/permissions \
+  -H "Authorization: Bearer <admin-token>" \
+  -H "Content-Type: application/json" \
+  -d "{\"permissionCodes\":[\"ADMIN_OVERVIEW_READ\",\"ADMIN_USER_VIEW\"]}"
+```
+
+4. 在 `GET /api/v1/admin/audits` 查询最新审计日志，确认以上操作均有落库记录。
 
 ## 12. 常见问题
 

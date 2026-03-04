@@ -49,6 +49,10 @@ spring:
           uri: lb://analysis-service
           predicates:
             - Path=/api/v1/reports/**
+        - id: admin-service
+          uri: lb://admin-service
+          predicates:
+            - Path=/api/v1/admin/**
 
 security:
   jwt:

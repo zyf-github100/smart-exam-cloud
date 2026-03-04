@@ -28,6 +28,7 @@ Open `http://192.168.242.10:8848/nacos`, then create these Data IDs in `DEFAULT_
 - `exam-service.yaml`
 - `grading-service.yaml`
 - `analysis-service.yaml`
+- `admin-service.yaml`
 
 Use files from this folder as content templates.
 
@@ -67,7 +68,7 @@ If you use namespace, set `NACOS_NAMESPACE=<your-namespace-id>`.
 ```bash
 NACOS_ADDR="http://192.168.242.10:8848"
 GROUP="DEFAULT_GROUP"
-for f in common.yaml gateway-service.yaml auth-service.yaml user-service.yaml question-service.yaml exam-service.yaml grading-service.yaml analysis-service.yaml; do
+for f in common.yaml gateway-service.yaml auth-service.yaml user-service.yaml question-service.yaml exam-service.yaml grading-service.yaml analysis-service.yaml admin-service.yaml; do
   curl -sS -X POST "${NACOS_ADDR}/nacos/v1/cs/configs" \
     --data-urlencode "dataId=${f}" \
     --data-urlencode "group=${GROUP}" \

@@ -103,4 +103,15 @@ export const api = {
   scoreDistribution: (examId) => http.get(`/reports/exams/${examId}/score-distribution`),
   questionAccuracyTop: (examId, top) =>
     http.get(`/reports/exams/${examId}/question-accuracy-top`, { params: { top } }),
+  adminOverview: () => http.get('/admin/overview'),
+  adminUsers: (params) => http.get('/admin/users', { params }),
+  adminUpdateUserStatus: (userId, payload) => http.put(`/admin/users/${userId}/status`, payload),
+  adminUpdateUserRole: (userId, payload) => http.put(`/admin/users/${userId}/role`, payload),
+  adminResetUserPassword: (userId, payload) => http.put(`/admin/users/${userId}/password/reset`, payload),
+  adminRoles: () => http.get('/admin/roles'),
+  adminPermissions: () => http.get('/admin/permissions'),
+  adminUpdateRolePermissions: (roleCode, payload) => http.put(`/admin/roles/${roleCode}/permissions`, payload),
+  adminConfigs: (params) => http.get('/admin/configs', { params }),
+  adminUpsertConfig: (configKey, payload) => http.put(`/admin/configs/${configKey}`, payload),
+  adminAudits: (params) => http.get('/admin/audits', { params }),
 }

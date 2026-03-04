@@ -21,6 +21,120 @@ ON DUPLICATE KEY UPDATE
     role = VALUES(role),
     status = VALUES(status);
 
+USE admin_db;
+CREATE TABLE IF NOT EXISTS sys_role (
+    id BIGINT PRIMARY KEY,
+    role_code VARCHAR(32) NOT NULL UNIQUE,
+    role_name VARCHAR(64) NOT NULL,
+    description VARCHAR(255),
+    is_system TINYINT NOT NULL DEFAULT 0,
+    status TINYINT NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_sys_role_status(status)
+);
+
+CREATE TABLE IF NOT EXISTS sys_permission (
+    id BIGINT PRIMARY KEY,
+    permission_code VARCHAR(64) NOT NULL UNIQUE,
+    permission_name VARCHAR(128) NOT NULL,
+    module_key VARCHAR(64) NOT NULL,
+    description VARCHAR(255),
+    status TINYINT NOT NULL DEFAULT 1,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_sys_permission_module_status(module_key, status)
+);
+
+CREATE TABLE IF NOT EXISTS sys_role_permission (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    role_code VARCHAR(32) NOT NULL,
+    permission_code VARCHAR(64) NOT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_sys_role_permission(role_code, permission_code),
+    INDEX idx_sys_role_permission_role(role_code),
+    INDEX idx_sys_role_permission_permission(permission_code)
+);
+
+CREATE TABLE IF NOT EXISTS sys_audit_log (
+    id BIGINT PRIMARY KEY,
+    operator_id BIGINT NOT NULL,
+    operator_role VARCHAR(32) NOT NULL,
+    action VARCHAR(64) NOT NULL,
+    target_type VARCHAR(64) NOT NULL,
+    target_id VARCHAR(64),
+    detail_json JSON NULL,
+    ip VARCHAR(64),
+    user_agent VARCHAR(255),
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_sys_audit_log_operator_created(operator_id, created_at),
+    INDEX idx_sys_audit_log_action_created(action, created_at),
+    INDEX idx_sys_audit_log_created(created_at)
+);
+
+CREATE TABLE IF NOT EXISTS sys_config (
+    config_key VARCHAR(128) PRIMARY KEY,
+    config_value TEXT NOT NULL,
+    group_key VARCHAR(64) NOT NULL DEFAULT 'SYSTEM',
+    description VARCHAR(255),
+    updated_by BIGINT NOT NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_sys_config_group_key(group_key)
+);
+
+INSERT INTO sys_role (id, role_code, role_name, description, is_system, status)
+VALUES
+    (91001, 'ADMIN', '平台管理员', '平台治理、权限分配与运维配置管理', 1, 1),
+    (91002, 'TEACHER', '教师', '教学相关业务角色', 1, 1),
+    (91003, 'STUDENT', '学生', '考试参与角色', 1, 1)
+ON DUPLICATE KEY UPDATE
+    role_name = VALUES(role_name),
+    description = VALUES(description),
+    is_system = VALUES(is_system),
+    status = VALUES(status);
+
+INSERT INTO sys_permission (id, permission_code, permission_name, module_key, description, status)
+VALUES
+    (92001, 'ADMIN_PLATFORM_ACCESS', '管理员入口访问', 'ADMIN', '访问管理员中心', 1),
+    (92002, 'ADMIN_OVERVIEW_READ', '平台概览读取', 'ADMIN', '读取管理员概览指标', 1),
+    (92003, 'ADMIN_USER_VIEW', '用户列表读取', 'ADMIN', '查询平台用户目录与详情', 1),
+    (92004, 'ADMIN_USER_STATUS_UPDATE', '用户状态变更', 'ADMIN', '启用/停用用户', 1),
+    (92005, 'ADMIN_USER_ROLE_UPDATE', '用户角色变更', 'ADMIN', '调整用户业务角色', 1),
+    (92006, 'ADMIN_USER_PASSWORD_RESET', '用户密码重置', 'ADMIN', '重置用户登录密码', 1),
+    (92007, 'ADMIN_ROLE_PERMISSION_ASSIGN', '角色权限分配', 'ADMIN', '维护角色权限矩阵', 1),
+    (92008, 'ADMIN_CONFIG_READ', '系统配置读取', 'ADMIN', '读取系统配置项', 1),
+    (92009, 'ADMIN_CONFIG_WRITE', '系统配置写入', 'ADMIN', '创建或更新系统配置项', 1),
+    (92010, 'ADMIN_AUDIT_READ', '审计日志读取', 'ADMIN', '查询管理员审计日志', 1)
+ON DUPLICATE KEY UPDATE
+    permission_name = VALUES(permission_name),
+    module_key = VALUES(module_key),
+    description = VALUES(description),
+    status = VALUES(status);
+
+INSERT IGNORE INTO sys_role_permission (role_code, permission_code)
+VALUES
+    ('ADMIN', 'ADMIN_PLATFORM_ACCESS'),
+    ('ADMIN', 'ADMIN_OVERVIEW_READ'),
+    ('ADMIN', 'ADMIN_USER_VIEW'),
+    ('ADMIN', 'ADMIN_USER_STATUS_UPDATE'),
+    ('ADMIN', 'ADMIN_USER_ROLE_UPDATE'),
+    ('ADMIN', 'ADMIN_USER_PASSWORD_RESET'),
+    ('ADMIN', 'ADMIN_ROLE_PERMISSION_ASSIGN'),
+    ('ADMIN', 'ADMIN_CONFIG_READ'),
+    ('ADMIN', 'ADMIN_CONFIG_WRITE'),
+    ('ADMIN', 'ADMIN_AUDIT_READ');
+
+INSERT INTO sys_config (config_key, config_value, group_key, description, updated_by)
+VALUES
+    ('ADMIN_PASSWORD_RESET_MIN_LENGTH', '6', 'SECURITY', '管理员重置密码最小长度策略', 10001),
+    ('ADMIN_AUDIT_RETENTION_DAYS', '180', 'SECURITY', '审计日志保留天数（建议按归档策略执行）', 10001),
+    ('ADMIN_OVERVIEW_CACHE_SECONDS', '30', 'PERFORMANCE', '管理员概览缓存时间（秒）', 10001)
+ON DUPLICATE KEY UPDATE
+    config_value = VALUES(config_value),
+    group_key = VALUES(group_key),
+    description = VALUES(description),
+    updated_by = VALUES(updated_by);
+
 USE question_db;
 CREATE TABLE IF NOT EXISTS q_question (
     id BIGINT PRIMARY KEY,
