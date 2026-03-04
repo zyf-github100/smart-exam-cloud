@@ -1,9 +1,11 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { api } from '../../api/client'
+import { prettyJson, useAsyncAction } from '../../composables/useAsyncAction'
 
-const loading = reactive({})
+const { loading, run } = useAsyncAction()
+
 const form = reactive({
   name: '',
   timeLimitMinutes: 90,
@@ -12,30 +14,9 @@ const form = reactive({
 const paperDetailId = ref('')
 const paperDetail = ref(null)
 
-const setLoading = (key, value) => {
-  loading[key] = value
-}
-
-const execute = async (key, action, successMessage) => {
-  setLoading(key, true)
-  try {
-    const result = await action()
-    if (successMessage) {
-      ElMessage.success(successMessage)
-    }
-    return result
-  } catch (error) {
-    ElMessage.error(error.message || 'Request failed')
-    return null
-  } finally {
-    setLoading(key, false)
-  }
-}
-
-const toPretty = (value) => {
-  if (!value) return '暂无数据'
-  return JSON.stringify(value, null, 2)
-}
+const estimatedScore = computed(() =>
+  form.questions.reduce((sum, item) => sum + (Number(item.score) || 0), 0)
+)
 
 const addQuestion = () => {
   form.questions.push({
@@ -55,6 +36,7 @@ const createPaper = async () => {
     ElMessage.warning('请输入试卷名称')
     return
   }
+
   const questions = form.questions
     .map((item, index) => ({
       questionId: item.questionId.trim(),
@@ -73,7 +55,8 @@ const createPaper = async () => {
     timeLimitMinutes: Number(form.timeLimitMinutes),
     questions,
   }
-  const data = await execute('create', () => api.createPaper(payload), '试卷创建成功')
+
+  const data = await run('create', () => api.createPaper(payload), { successMessage: '试卷创建成功' })
   if (data) {
     paperDetail.value = data
     paperDetailId.value = data.id
@@ -86,7 +69,7 @@ const getPaper = async () => {
     ElMessage.warning('请输入试卷 ID')
     return
   }
-  const data = await execute('detail', () => api.getPaper(paperId))
+  const data = await run('detail', () => api.getPaper(paperId))
   if (data) {
     paperDetail.value = data
   }
@@ -94,37 +77,91 @@ const getPaper = async () => {
 </script>
 
 <template>
-  <el-form label-position="top">
-    <el-row :gutter="12">
-      <el-col :xs="24" :md="14">
-        <el-form-item label="试卷名称">
-          <el-input v-model="form.name" />
-        </el-form-item>
-      </el-col>
-      <el-col :xs="24" :md="10">
-        <el-form-item label="时长(分钟)">
-          <el-input-number v-model="form.timeLimitMinutes" :min="10" :step="10" />
-        </el-form-item>
-      </el-col>
-    </el-row>
-    <el-form-item label="题目清单">
-      <div class="dynamic-list">
-        <div v-for="(item, index) in form.questions" :key="index" class="dynamic-row">
-          <el-input v-model="item.questionId" placeholder="questionId" />
-          <el-input-number v-model="item.score" :min="1" :step="1" />
-          <el-input-number v-model="item.orderNo" :min="1" :step="1" />
-          <el-button link type="danger" @click="removeQuestion(index)">删除</el-button>
+  <div class="stage-layout two-panels">
+    <section class="console-block">
+      <div class="block-head">
+        <div>
+          <h3 class="block-title">创建试卷</h3>
+          <p class="block-sub">组合题目、顺序和分值，生成可直接开考的试卷配置。</p>
         </div>
-        <el-button link type="primary" @click="addQuestion">新增题目</el-button>
       </div>
-    </el-form-item>
-    <el-button type="primary" :loading="loading.create" @click="createPaper">创建试卷</el-button>
-  </el-form>
 
-  <div class="inline-query">
-    <el-input v-model="paperDetailId" placeholder="输入试卷 ID 查询" />
-    <el-button :loading="loading.detail" @click="getPaper">查询</el-button>
+      <div class="metrics-grid cols-3">
+        <article class="metric-card">
+          <span>题目数量</span>
+          <strong>{{ form.questions.length }}</strong>
+        </article>
+        <article class="metric-card">
+          <span>预估总分</span>
+          <strong>{{ estimatedScore }}</strong>
+        </article>
+        <article class="metric-card">
+          <span>默认时长</span>
+          <strong>{{ form.timeLimitMinutes }} min</strong>
+        </article>
+      </div>
+
+      <el-form label-position="top">
+        <div class="form-grid cols-2">
+          <el-form-item label="试卷名称">
+            <el-input v-model="form.name" placeholder="例如：高数期中 A 卷" />
+          </el-form-item>
+          <el-form-item label="时长(分钟)">
+            <el-input-number v-model="form.timeLimitMinutes" :min="10" :step="10" />
+          </el-form-item>
+        </div>
+
+        <el-form-item label="题目清单">
+          <div class="dynamic-list">
+            <div v-for="(item, index) in form.questions" :key="index" class="paper-row">
+              <el-input v-model="item.questionId" placeholder="questionId" />
+              <el-input-number v-model="item.score" :min="1" :step="1" />
+              <el-input-number v-model="item.orderNo" :min="1" :step="1" />
+              <el-button text type="danger" @click="removeQuestion(index)">删除</el-button>
+            </div>
+            <el-button text type="primary" @click="addQuestion">新增题目</el-button>
+          </div>
+        </el-form-item>
+
+        <div class="action-row">
+          <el-button type="primary" :loading="loading.create" @click="createPaper">创建试卷</el-button>
+          <el-button :loading="loading.detail" @click="getPaper">查询试卷</el-button>
+        </div>
+      </el-form>
+    </section>
+
+    <section class="stack-gap">
+      <section class="console-block">
+        <div class="block-head compact">
+          <h3 class="block-title">试卷查询</h3>
+        </div>
+        <div class="query-row">
+          <el-input v-model="paperDetailId" placeholder="输入试卷 ID" />
+          <el-button :loading="loading.detail" @click="getPaper">查询</el-button>
+        </div>
+      </section>
+
+      <section class="console-block">
+        <div class="block-head compact">
+          <h3 class="block-title">试卷详情</h3>
+        </div>
+        <pre class="json-block">{{ prettyJson(paperDetail) }}</pre>
+      </section>
+    </section>
   </div>
-
-  <pre class="json-block">{{ toPretty(paperDetail) }}</pre>
 </template>
+
+<style scoped>
+.paper-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) auto auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+@media (max-width: 840px) {
+  .paper-row {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
