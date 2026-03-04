@@ -273,6 +273,61 @@ curl "http://localhost:9000/api/v1/reports/exams/<examId>/score-distribution" \
   -H "Authorization: Bearer <teacher-token>"
 ```
 
+### 10.8 防作弊事件采集与风险评分（第一批）联调检查
+
+当前已在 `exam-service` 落地第一批能力：
+
+- 学生端上报防作弊事件：`POST /api/v1/sessions/{sessionId}/anti-cheat/events`
+- 教师/管理员查看会话风险：`GET /api/v1/sessions/{sessionId}/anti-cheat/risk`
+- 教师/管理员按考试分页查看风险：`GET /api/v1/exams/{examId}/anti-cheat/risks`
+
+联调前置条件：
+
+1. 重新执行 `docs/sql/02_core_tables.sql`（新增 `e_session_risk_event`、`e_session_risk_summary`）。
+2. 重启 `auth-service`、`gateway-service`、`exam-service`。
+3. 重新登录获取新 token（新增防作弊权限码）。
+
+示例（学生上报）：
+
+```bash
+curl -X POST http://localhost:9000/api/v1/sessions/<sessionId>/anti-cheat/events \
+  -H "Authorization: Bearer <student-token>" \
+  -H "Content-Type: application/json" \
+  -d "{\"eventType\":\"SWITCH_SCREEN\",\"metadata\":{\"times\":1}}"
+```
+
+示例（教师查看）：
+
+```bash
+curl http://localhost:9000/api/v1/sessions/<sessionId>/anti-cheat/risk \
+  -H "Authorization: Bearer <teacher-token>"
+
+curl "http://localhost:9000/api/v1/exams/<examId>/anti-cheat/risks?page=1&size=20" \
+  -H "Authorization: Bearer <teacher-token>"
+```
+
+### 10.9 防作弊规则配置化与后台风险页（第二批）联调检查
+
+`exam-service` 已支持通过 Nacos 配置防作弊规则参数，配置位于：
+
+- `smart-exam.exam.anti-cheat.recent-events-limit`
+- `smart-exam.exam.anti-cheat.page-default-size`
+- `smart-exam.exam.anti-cheat.page-max-size`
+- `smart-exam.exam.anti-cheat.max-future-skew-minutes`
+- `smart-exam.exam.anti-cheat.repeat-window-minutes`
+- `smart-exam.exam.anti-cheat.repeat-penalty-score`
+- `smart-exam.exam.anti-cheat.level-step-percent`
+- `smart-exam.exam.anti-cheat.medium-threshold`
+- `smart-exam.exam.anti-cheat.high-threshold`
+- `smart-exam.exam.anti-cheat.critical-threshold`
+- `smart-exam.exam.anti-cheat.event-base-scores.*`
+
+联调步骤：
+
+1. 在 Nacos 更新 `exam-service.yaml` 中上述参数。
+2. 重启 `exam-service`（当前按重启生效流程执行）。
+3. 在前端进入 `管理后台 -> 风险监控`（`/admin/risks`）查看风险分页和会话事件详情。
+
 ## 12. 常见问题
 
 ### 12.1 服务启动后连不上 Nacos

@@ -20,6 +20,7 @@ const lazyPages = {
   'admin-roles': () => import('../components/console/admin/AdminRolesPage.vue'),
   'admin-configs': () => import('../components/console/admin/AdminConfigsPage.vue'),
   'admin-audits': () => import('../components/console/admin/AdminAuditsPage.vue'),
+  'admin-risks': () => import('../components/console/admin/AdminRiskPage.vue'),
 }
 
 const resolveLazyPage = (name) => {
@@ -59,6 +60,7 @@ const routes = [
       { path: 'roles', name: 'admin-roles', component: resolveLazyPage('admin-roles') },
       { path: 'configs', name: 'admin-configs', component: resolveLazyPage('admin-configs') },
       { path: 'audits', name: 'admin-audits', component: resolveLazyPage('admin-audits') },
+      { path: 'risks', name: 'admin-risks', component: resolveLazyPage('admin-risks') },
     ],
   },
   { path: '/:pathMatch(.*)*', redirect: consoleModules[0].path },

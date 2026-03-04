@@ -120,7 +120,9 @@ VALUES
     (92023, 'REPORT_QUESTION_ACCURACY_VIEW', '题目正确率报表读取', 'ANALYSIS', '查询题目正确率 TopN 报表', 1),
     (92024, 'USER_SELF_VIEW', '个人资料读取', 'USER', '查询当前登录用户资料', 1),
     (92025, 'USER_PROFILE_VIEW', '用户详情读取', 'USER', '按用户ID查询资料', 1),
-    (92026, 'USER_LIST_VIEW', '用户列表读取', 'USER', '查询用户列表', 1)
+    (92026, 'USER_LIST_VIEW', '用户列表读取', 'USER', '查询用户列表', 1),
+    (92027, 'EXAM_ANTI_CHEAT_EVENT_REPORT', '防作弊事件上报', 'EXAM', '上报考试过程防作弊风险事件', 1),
+    (92028, 'EXAM_ANTI_CHEAT_RISK_VIEW', '防作弊风险查看', 'EXAM', '查看考试会话风险评分与事件明细', 1)
 ON DUPLICATE KEY UPDATE
     permission_name = VALUES(permission_name),
     module_key = VALUES(module_key),
@@ -143,6 +145,8 @@ VALUES
     ('ADMIN', 'EXAM_SESSION_START'),
     ('ADMIN', 'EXAM_ANSWER_SAVE'),
     ('ADMIN', 'EXAM_SESSION_SUBMIT'),
+    ('ADMIN', 'EXAM_ANTI_CHEAT_EVENT_REPORT'),
+    ('ADMIN', 'EXAM_ANTI_CHEAT_RISK_VIEW'),
     ('ADMIN', 'GRADING_TASK_VIEW'),
     ('ADMIN', 'GRADING_MANUAL_SCORE'),
     ('ADMIN', 'QUESTION_CREATE'),
@@ -156,6 +160,7 @@ VALUES
     ('ADMIN', 'USER_PROFILE_VIEW'),
     ('ADMIN', 'USER_LIST_VIEW'),
     ('TEACHER', 'EXAM_CREATE'),
+    ('TEACHER', 'EXAM_ANTI_CHEAT_RISK_VIEW'),
     ('TEACHER', 'GRADING_TASK_VIEW'),
     ('TEACHER', 'GRADING_MANUAL_SCORE'),
     ('TEACHER', 'QUESTION_CREATE'),
@@ -171,6 +176,7 @@ VALUES
     ('STUDENT', 'EXAM_SESSION_START'),
     ('STUDENT', 'EXAM_ANSWER_SAVE'),
     ('STUDENT', 'EXAM_SESSION_SUBMIT'),
+    ('STUDENT', 'EXAM_ANTI_CHEAT_EVENT_REPORT'),
     ('STUDENT', 'USER_SELF_VIEW');
 
 INSERT INTO sys_config (config_key, config_value, group_key, description, updated_by)
@@ -245,6 +251,34 @@ CREATE TABLE IF NOT EXISTS e_exam_session (
     last_save_time DATETIME NULL,
     INDEX idx_e_exam_session_exam_user(exam_id, user_id),
     INDEX idx_e_exam_session_status(status)
+);
+
+CREATE TABLE IF NOT EXISTS e_session_risk_event (
+    id BIGINT PRIMARY KEY,
+    session_id BIGINT NOT NULL,
+    exam_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    event_type VARCHAR(64) NOT NULL,
+    event_time DATETIME NOT NULL,
+    event_score INT NOT NULL,
+    payload_json TEXT,
+    client_ip VARCHAR(64),
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_e_session_risk_event_session(session_id, event_time),
+    INDEX idx_e_session_risk_event_exam(exam_id, event_time)
+);
+
+CREATE TABLE IF NOT EXISTS e_session_risk_summary (
+    session_id BIGINT PRIMARY KEY,
+    exam_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    risk_score INT NOT NULL DEFAULT 0,
+    risk_level VARCHAR(16) NOT NULL DEFAULT 'LOW',
+    event_count INT NOT NULL DEFAULT 0,
+    last_event_type VARCHAR(64),
+    last_event_time DATETIME NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_e_session_risk_summary_exam(exam_id, risk_level, risk_score)
 );
 
 CREATE TABLE IF NOT EXISTS e_answer (

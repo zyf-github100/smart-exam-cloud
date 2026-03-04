@@ -70,8 +70,13 @@ smart-exam-cloud/
   - `POST /api/v1/exams/{examId}/start`
   - `PUT /api/v1/sessions/{sessionId}/answers`
   - `POST /api/v1/sessions/{sessionId}/submit`
+  - `POST /api/v1/sessions/{sessionId}/anti-cheat/events`（防作弊事件上报，第一批）
+  - `GET /api/v1/sessions/{sessionId}/anti-cheat/risk`（会话风险详情）
+  - `GET /api/v1/exams/{examId}/anti-cheat/risks`（按考试查看风险分页）
   - 考试状态自动流转：`NOT_STARTED -> RUNNING -> FINISHED`
   - 交卷发布 `exam.submitted` 事件
+  - 防作弊第一批：事件采集 + 风险评分聚合（`LOW/MEDIUM/HIGH/CRITICAL`）
+  - 防作弊第二批：规则参数支持 `smart-exam.exam.anti-cheat.*` 配置化（Nacos）
   - 已接入接口级细粒度 RBAC（角色 + 权限码）
 
 - 判卷 `grading-service`（`grading_db` + Redis + RabbitMQ）

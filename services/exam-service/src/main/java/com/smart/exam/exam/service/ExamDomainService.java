@@ -7,15 +7,23 @@ import com.smart.exam.common.core.error.BizException;
 import com.smart.exam.common.core.error.ErrorCode;
 import com.smart.exam.common.core.event.ExamSubmittedEvent;
 import com.smart.exam.common.core.id.SnowflakeIdGenerator;
+import com.smart.exam.exam.config.AntiCheatProperties;
 import com.smart.exam.exam.config.RabbitConfig;
 import com.smart.exam.exam.dto.CreateExamRequest;
+import com.smart.exam.exam.dto.ReportAntiCheatEventRequest;
 import com.smart.exam.exam.dto.SaveAnswersRequest;
 import com.smart.exam.exam.entity.AnswerEntity;
 import com.smart.exam.exam.entity.ExamEntity;
 import com.smart.exam.exam.entity.ExamSessionEntity;
+import com.smart.exam.exam.entity.SessionRiskEventEntity;
+import com.smart.exam.exam.entity.SessionRiskSummaryEntity;
 import com.smart.exam.exam.mapper.AnswerMapper;
 import com.smart.exam.exam.mapper.ExamMapper;
 import com.smart.exam.exam.mapper.ExamSessionMapper;
+import com.smart.exam.exam.mapper.SessionRiskEventMapper;
+import com.smart.exam.exam.mapper.SessionRiskSummaryMapper;
+import com.smart.exam.exam.model.AntiCheatRiskEvent;
+import com.smart.exam.exam.model.AntiCheatRiskSummary;
 import com.smart.exam.exam.model.AnswerItem;
 import com.smart.exam.exam.model.Exam;
 import com.smart.exam.exam.model.ExamStatus;
@@ -36,9 +44,11 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -58,6 +68,10 @@ public class ExamDomainService {
     private final ExamMapper examMapper;
     private final ExamSessionMapper examSessionMapper;
     private final AnswerMapper answerMapper;
+    private final SessionRiskEventMapper sessionRiskEventMapper;
+    private final SessionRiskSummaryMapper sessionRiskSummaryMapper;
+    private final AntiCheatRuleEngine antiCheatRuleEngine;
+    private final AntiCheatProperties antiCheatProperties;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
@@ -66,6 +80,10 @@ public class ExamDomainService {
                              ExamMapper examMapper,
                              ExamSessionMapper examSessionMapper,
                              AnswerMapper answerMapper,
+                             SessionRiskEventMapper sessionRiskEventMapper,
+                             SessionRiskSummaryMapper sessionRiskSummaryMapper,
+                             AntiCheatRuleEngine antiCheatRuleEngine,
+                             AntiCheatProperties antiCheatProperties,
                              StringRedisTemplate redisTemplate,
                              ObjectMapper objectMapper) {
         this.idGenerator = idGenerator;
@@ -73,6 +91,10 @@ public class ExamDomainService {
         this.examMapper = examMapper;
         this.examSessionMapper = examSessionMapper;
         this.answerMapper = answerMapper;
+        this.sessionRiskEventMapper = sessionRiskEventMapper;
+        this.sessionRiskSummaryMapper = sessionRiskSummaryMapper;
+        this.antiCheatRuleEngine = antiCheatRuleEngine;
+        this.antiCheatProperties = antiCheatProperties;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
     }
@@ -218,6 +240,149 @@ public class ExamDomainService {
                 "status", session.getStatus(),
                 "submittedAt", session.getSubmitTime()
         );
+    }
+
+    @Transactional
+    public Map<String, Object> reportAntiCheatEvent(String sessionId,
+                                                    String userId,
+                                                    String clientIp,
+                                                    ReportAntiCheatEventRequest request) {
+        long sessionLongId = parseLong("sessionId", sessionId);
+        ExamSessionEntity session = getSessionEntity(sessionLongId);
+        if (!String.valueOf(session.getUserId()).equals(userId)) {
+            throw new BizException(ErrorCode.FORBIDDEN, "Session does not belong to current user");
+        }
+        if (!SessionStatus.IN_PROGRESS.name().equals(session.getStatus())) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "Session is not active");
+        }
+
+        ExamEntity exam = examMapper.selectById(session.getExamId());
+        if (exam == null) {
+            throw new BizException(ErrorCode.NOT_FOUND, "Exam not found");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime eventTime = request.getEventTime() == null ? now : request.getEventTime();
+        if (eventTime.isAfter(now.plusMinutes(antiCheatProperties.getMaxFutureSkewMinutes()))) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "eventTime is too far in future");
+        }
+        String eventType = antiCheatRuleEngine.normalizeEventType(request.getEventType());
+        SessionRiskSummaryEntity currentSummary = sessionRiskSummaryMapper.selectById(sessionLongId);
+        int eventScore = antiCheatRuleEngine.calculateScore(eventType, exam.getAntiCheatLevel(), currentSummary, eventTime);
+
+        SessionRiskEventEntity eventEntity = new SessionRiskEventEntity();
+        eventEntity.setId(idGenerator.nextId());
+        eventEntity.setSessionId(sessionLongId);
+        eventEntity.setExamId(session.getExamId());
+        eventEntity.setUserId(session.getUserId());
+        eventEntity.setEventType(eventType);
+        eventEntity.setEventTime(eventTime);
+        eventEntity.setEventScore(eventScore);
+        eventEntity.setPayloadJson(writeAsJson(request.getMetadata() == null ? Collections.emptyMap() : request.getMetadata()));
+        eventEntity.setClientIp(clientIp);
+        eventEntity.setCreatedAt(LocalDateTime.now());
+        sessionRiskEventMapper.insert(eventEntity);
+
+        boolean insertSummary = currentSummary == null;
+        int riskScore = eventScore;
+        int eventCount = 1;
+        if (insertSummary) {
+            currentSummary = new SessionRiskSummaryEntity();
+            currentSummary.setSessionId(sessionLongId);
+            currentSummary.setExamId(session.getExamId());
+            currentSummary.setUserId(session.getUserId());
+        } else {
+            riskScore += safeInt(currentSummary.getRiskScore());
+            eventCount += safeInt(currentSummary.getEventCount());
+        }
+        currentSummary.setRiskScore(riskScore);
+        currentSummary.setEventCount(eventCount);
+        currentSummary.setRiskLevel(antiCheatRuleEngine.resolveRiskLevel(riskScore));
+        currentSummary.setLastEventType(eventType);
+        currentSummary.setLastEventTime(eventTime);
+        currentSummary.setUpdatedAt(LocalDateTime.now());
+        if (insertSummary) {
+            sessionRiskSummaryMapper.insert(currentSummary);
+        } else {
+            sessionRiskSummaryMapper.updateById(currentSummary);
+        }
+
+        if ("SWITCH_SCREEN".equals(eventType)) {
+            session.setSwitchScreenCount(safeInt(session.getSwitchScreenCount()) + 1);
+            examSessionMapper.updateById(session);
+        }
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("accepted", true);
+        payload.put("sessionId", sessionId);
+        payload.put("eventId", String.valueOf(eventEntity.getId()));
+        payload.put("eventType", eventType);
+        payload.put("eventScore", eventScore);
+        payload.put("riskSummary", toRiskSummary(currentSummary));
+        return payload;
+    }
+
+    public Map<String, Object> getSessionRisk(String sessionId) {
+        long sessionLongId = parseLong("sessionId", sessionId);
+        ExamSessionEntity session = getSessionEntity(sessionLongId);
+        SessionRiskSummaryEntity summary = sessionRiskSummaryMapper.selectById(sessionLongId);
+        if (summary == null) {
+            summary = new SessionRiskSummaryEntity();
+            summary.setSessionId(sessionLongId);
+            summary.setExamId(session.getExamId());
+            summary.setUserId(session.getUserId());
+            summary.setRiskScore(0);
+            summary.setEventCount(0);
+            summary.setRiskLevel("LOW");
+            summary.setUpdatedAt(LocalDateTime.now());
+        }
+
+        List<SessionRiskEventEntity> events = sessionRiskEventMapper.selectList(
+                Wrappers.lambdaQuery(SessionRiskEventEntity.class)
+                        .eq(SessionRiskEventEntity::getSessionId, sessionLongId)
+                        .orderByDesc(SessionRiskEventEntity::getEventTime)
+                        .last("limit " + antiCheatProperties.getRecentEventsLimit())
+        );
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("summary", toRiskSummary(summary));
+        payload.put("events", events.stream().map(this::toRiskEvent).toList());
+        return payload;
+    }
+
+    public Map<String, Object> listExamRisks(String examId, String riskLevel, Long page, Long size) {
+        long examLongId = parseLong("examId", examId);
+        if (examMapper.selectById(examLongId) == null) {
+            throw new BizException(ErrorCode.NOT_FOUND, "Exam not found");
+        }
+        long safePage = normalizePage(page);
+        long safeSize = normalizeSize(size);
+        long offset = (safePage - 1) * safeSize;
+        String normalizedRiskLevel = normalizeRiskLevel(riskLevel);
+
+        Long total = sessionRiskSummaryMapper.selectCount(
+                Wrappers.lambdaQuery(SessionRiskSummaryEntity.class)
+                        .eq(SessionRiskSummaryEntity::getExamId, examLongId)
+                        .eq(StringUtils.hasText(normalizedRiskLevel), SessionRiskSummaryEntity::getRiskLevel, normalizedRiskLevel)
+        );
+        List<SessionRiskSummaryEntity> records = List.of();
+        if (total != null && total > 0) {
+            records = sessionRiskSummaryMapper.selectList(
+                    Wrappers.lambdaQuery(SessionRiskSummaryEntity.class)
+                            .eq(SessionRiskSummaryEntity::getExamId, examLongId)
+                            .eq(StringUtils.hasText(normalizedRiskLevel), SessionRiskSummaryEntity::getRiskLevel, normalizedRiskLevel)
+                            .orderByDesc(SessionRiskSummaryEntity::getRiskScore)
+                            .orderByDesc(SessionRiskSummaryEntity::getUpdatedAt)
+                            .last("limit " + offset + "," + safeSize)
+            );
+        }
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("page", safePage);
+        payload.put("size", safeSize);
+        payload.put("total", total == null ? 0L : total);
+        payload.put("records", records.stream().map(this::toRiskSummary).toList());
+        return payload;
     }
 
     public Exam getExam(String examId) {
@@ -391,6 +556,73 @@ public class ExamDomainService {
         } catch (Exception ex) {
             log.warn("Failed to write cache, key={}", key, ex);
         }
+    }
+
+    private AntiCheatRiskSummary toRiskSummary(SessionRiskSummaryEntity entity) {
+        AntiCheatRiskSummary summary = new AntiCheatRiskSummary();
+        summary.setSessionId(entity.getSessionId() == null ? null : String.valueOf(entity.getSessionId()));
+        summary.setExamId(entity.getExamId() == null ? null : String.valueOf(entity.getExamId()));
+        summary.setUserId(entity.getUserId() == null ? null : String.valueOf(entity.getUserId()));
+        summary.setRiskScore(safeInt(entity.getRiskScore()));
+        summary.setRiskLevel(entity.getRiskLevel());
+        summary.setEventCount(safeInt(entity.getEventCount()));
+        summary.setLastEventType(entity.getLastEventType());
+        summary.setLastEventTime(entity.getLastEventTime());
+        summary.setUpdatedAt(entity.getUpdatedAt());
+        return summary;
+    }
+
+    private AntiCheatRiskEvent toRiskEvent(SessionRiskEventEntity entity) {
+        AntiCheatRiskEvent event = new AntiCheatRiskEvent();
+        event.setId(entity.getId() == null ? null : String.valueOf(entity.getId()));
+        event.setEventType(entity.getEventType());
+        event.setEventTime(entity.getEventTime());
+        event.setEventScore(safeInt(entity.getEventScore()));
+        event.setMetadata(readJsonObject(entity.getPayloadJson()));
+        event.setClientIp(entity.getClientIp());
+        event.setCreatedAt(entity.getCreatedAt());
+        return event;
+    }
+
+    private Object readJsonObject(String rawJson) {
+        if (!StringUtils.hasText(rawJson)) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(rawJson, Object.class);
+        } catch (Exception ex) {
+            log.warn("Failed to deserialize anti-cheat payload", ex);
+            return rawJson;
+        }
+    }
+
+    private int safeInt(Integer value) {
+        return value == null ? 0 : value;
+    }
+
+    private long normalizePage(Long page) {
+        if (page == null || page < 1) {
+            return 1;
+        }
+        return page;
+    }
+
+    private long normalizeSize(Long size) {
+        if (size == null || size < 1) {
+            return antiCheatProperties.getPageDefaultSize();
+        }
+        return Math.min(size, antiCheatProperties.getPageMaxSize());
+    }
+
+    private String normalizeRiskLevel(String riskLevel) {
+        if (!StringUtils.hasText(riskLevel)) {
+            return null;
+        }
+        String normalized = riskLevel.trim().toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "LOW", "MEDIUM", "HIGH", "CRITICAL" -> normalized;
+            default -> throw new BizException(ErrorCode.BAD_REQUEST, "Invalid riskLevel: " + riskLevel);
+        };
     }
 
     private String writeAsJson(Object data) {

@@ -4,17 +4,20 @@ import com.smart.exam.common.core.model.ApiResponse;
 import com.smart.exam.common.web.security.PermissionCodes;
 import com.smart.exam.common.web.security.RoleGuard;
 import com.smart.exam.exam.dto.CreateExamRequest;
+import com.smart.exam.exam.dto.ReportAntiCheatEventRequest;
 import com.smart.exam.exam.dto.SaveAnswersRequest;
 import com.smart.exam.exam.model.Exam;
 import com.smart.exam.exam.service.ExamDomainService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
@@ -71,6 +74,42 @@ public class ExamController {
             @RequestHeader(value = "X-Permissions", required = false) String permissions) {
         String studentId = requireStudentOrAdmin(userId, role, permissions, PermissionCodes.EXAM_SESSION_SUBMIT);
         return ApiResponse.ok(examDomainService.submit(sessionId, studentId));
+    }
+
+    @PostMapping("/sessions/{sessionId}/anti-cheat/events")
+    public ApiResponse<Map<String, Object>> reportAntiCheatEvent(
+            @PathVariable("sessionId") String sessionId,
+            @Valid @RequestBody ReportAntiCheatEventRequest request,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestHeader(value = "X-Role", required = false) String role,
+            @RequestHeader(value = "X-Permissions", required = false) String permissions,
+            HttpServletRequest servletRequest) {
+        String studentId = requireStudentOrAdmin(userId, role, permissions, PermissionCodes.EXAM_ANTI_CHEAT_EVENT_REPORT);
+        String ip = servletRequest == null ? null : servletRequest.getRemoteAddr();
+        return ApiResponse.ok(examDomainService.reportAntiCheatEvent(sessionId, studentId, ip, request));
+    }
+
+    @GetMapping("/sessions/{sessionId}/anti-cheat/risk")
+    public ApiResponse<Map<String, Object>> getSessionRisk(
+            @PathVariable("sessionId") String sessionId,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestHeader(value = "X-Role", required = false) String role,
+            @RequestHeader(value = "X-Permissions", required = false) String permissions) {
+        requireTeacherOrAdmin(userId, role, permissions, PermissionCodes.EXAM_ANTI_CHEAT_RISK_VIEW);
+        return ApiResponse.ok(examDomainService.getSessionRisk(sessionId));
+    }
+
+    @GetMapping("/exams/{examId}/anti-cheat/risks")
+    public ApiResponse<Map<String, Object>> listExamRisks(
+            @PathVariable("examId") String examId,
+            @RequestParam(name = "riskLevel", required = false) String riskLevel,
+            @RequestParam(name = "page", required = false) Long page,
+            @RequestParam(name = "size", required = false) Long size,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestHeader(value = "X-Role", required = false) String role,
+            @RequestHeader(value = "X-Permissions", required = false) String permissions) {
+        requireTeacherOrAdmin(userId, role, permissions, PermissionCodes.EXAM_ANTI_CHEAT_RISK_VIEW);
+        return ApiResponse.ok(examDomainService.listExamRisks(examId, riskLevel, page, size));
     }
 
     private String requireTeacherOrAdmin(String userId, String role, String permissions, String requiredPermission) {

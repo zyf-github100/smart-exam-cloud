@@ -102,6 +102,7 @@ flowchart LR
 - 会话生命周期管理。
 - 作答保存与提交。
 - 考试状态自动流转调度（`NOT_STARTED -> RUNNING -> FINISHED`）。
+- 防作弊事件采集与会话风险聚合（第一批）。
 - 发布交卷事件。
 
 ### 4.6 grading-service
@@ -154,7 +155,7 @@ flowchart LR
 
 - `user_db`：`sys_user`
 - `question_db`：`q_question`、`q_paper`、`q_paper_question`
-- `exam_db`：`e_exam`、`e_exam_session`、`e_answer`
+- `exam_db`：`e_exam`、`e_exam_session`、`e_answer`、`e_session_risk_event`、`e_session_risk_summary`
 - `grading_db`：`g_grading_task`、`g_question_score`
 - `analysis_db`：`a_score`、`a_session_question_score`
 - `admin_db`：`sys_role`、`sys_permission`、`sys_role_permission`、`sys_audit_log`、`sys_config`
@@ -163,6 +164,7 @@ flowchart LR
 
 - `q_paper_question(paper_id, order_no)` 唯一。
 - `e_answer(session_id, question_id)` 唯一。
+- `e_session_risk_summary(session_id)` 唯一。
 - `g_grading_task(session_id)` 唯一。
 - `a_score(session_id)` 唯一。
 - `a_session_question_score(session_id, question_id)` 唯一。
@@ -240,6 +242,11 @@ Redis 主要用途：
 - MySQL：`MYSQL_URL` / 用户密码
 - Redis：`REDIS_HOST`、`REDIS_PORT`
 - RabbitMQ：`RABBITMQ_HOST`、`RABBITMQ_PORT`
+
+关键业务配置：
+
+- `smart-exam.exam.status-sync-*`：考试状态自动流转调度参数。
+- `smart-exam.exam.anti-cheat.*`：防作弊事件评分、阈值与查询分页参数（Nacos 可配置）。
 
 ## 10. 安全架构
 

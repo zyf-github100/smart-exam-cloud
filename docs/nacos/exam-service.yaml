@@ -16,3 +16,24 @@ smart-exam:
   exam:
     status-sync-initial-delay-ms: 10000
     status-sync-interval-ms: 30000
+    anti-cheat:
+      recent-events-limit: 20
+      page-default-size: 20
+      page-max-size: 100
+      max-future-skew-minutes: 5
+      repeat-window-minutes: 3
+      repeat-penalty-score: 2
+      level-step-percent: 25
+      medium-threshold: 20
+      high-threshold: 50
+      critical-threshold: 80
+      event-base-scores:
+        SWITCH_SCREEN: 5
+        WINDOW_BLUR: 3
+        COPY_ATTEMPT: 8
+        PASTE_ATTEMPT: 8
+        DEVTOOLS_OPEN: 10
+        NETWORK_DISCONNECT: 6
+        MULTI_DEVICE_LOGIN: 15
+        IDLE_TIMEOUT: 4
+        OTHER: 2

@@ -9,6 +9,7 @@ export const useAdminConsole = () => {
   const { loading, run } = useAsyncAction()
 
   const roleOptions = ['ADMIN', 'TEACHER', 'STUDENT']
+  const riskLevelOptions = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
   const overview = ref(null)
 
   const userQuery = reactive({
@@ -63,6 +64,21 @@ export const useAdminConsole = () => {
     total: 0,
     records: [],
   })
+
+  const riskQuery = reactive({
+    examId: '',
+    riskLevel: '',
+    page: 1,
+    size: 10,
+  })
+  const riskPage = ref({
+    page: 1,
+    size: 10,
+    total: 0,
+    records: [],
+  })
+  const selectedRiskSessionId = ref('')
+  const sessionRiskDetail = ref(null)
 
   const selectedUser = computed(() => userPage.value.records.find((item) => item.id === selectedUserId.value) || null)
   const permissionGroups = computed(() => {
@@ -315,6 +331,54 @@ export const useAdminConsole = () => {
     }
   }
 
+  const loadExamRisks = async () => {
+    const examId = normalizeText(riskQuery.examId)
+    if (!examId) {
+      ElMessage.warning('请输入考试ID')
+      return
+    }
+
+    const params = {
+      riskLevel: normalizeText(riskQuery.riskLevel),
+      page: riskQuery.page,
+      size: riskQuery.size,
+    }
+    const data = await run('examRisks', () => api.examAntiCheatRisks(examId, params))
+    if (data) {
+      riskPage.value = {
+        page: data.page || riskQuery.page,
+        size: data.size || riskQuery.size,
+        total: data.total || 0,
+        records: Array.isArray(data.records) ? data.records : [],
+      }
+      if (selectedRiskSessionId.value) {
+        const stillExists = riskPage.value.records.some((item) => item.sessionId === selectedRiskSessionId.value)
+        if (!stillExists) {
+          selectedRiskSessionId.value = ''
+          sessionRiskDetail.value = null
+        }
+      }
+    }
+  }
+
+  const loadSessionRisk = async () => {
+    const sessionId = normalizeText(selectedRiskSessionId.value)
+    if (!sessionId) {
+      sessionRiskDetail.value = null
+      return
+    }
+    const data = await run('sessionRisk', () => api.sessionAntiCheatRisk(sessionId))
+    if (data) {
+      sessionRiskDetail.value = data
+    }
+  }
+
+  const selectRiskRecord = async (record) => {
+    if (!record || !record.sessionId) return
+    selectedRiskSessionId.value = record.sessionId
+    await loadSessionRisk()
+  }
+
   const init = async () => {
     await Promise.all([loadOverview(), loadUsers(), loadRolesAndPermissions(), loadConfigs(), loadAudits()])
   }
@@ -324,6 +388,7 @@ export const useAdminConsole = () => {
   return proxyRefs({
     loading,
     roleOptions,
+    riskLevelOptions,
     overview,
     userQuery,
     userPage,
@@ -339,6 +404,10 @@ export const useAdminConsole = () => {
     auditQuery,
     auditRange,
     auditPage,
+    riskQuery,
+    riskPage,
+    selectedRiskSessionId,
+    sessionRiskDetail,
     selectedUser,
     permissionGroups,
     selectedRoleDetail,
@@ -353,5 +422,8 @@ export const useAdminConsole = () => {
     loadConfigs,
     submitConfig,
     loadAudits,
+    loadExamRisks,
+    loadSessionRisk,
+    selectRiskRecord,
   })
 }

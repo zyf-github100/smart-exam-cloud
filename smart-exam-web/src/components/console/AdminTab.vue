@@ -1,7 +1,7 @@
 <script setup>
 import { computed, provide } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Lock, Operation, Setting, User } from '@element-plus/icons-vue'
+import { Lock, Operation, Setting, User, Warning } from '@element-plus/icons-vue'
 import { ADMIN_CONSOLE_KEY, useAdminConsole } from '../../composables/useAdminConsole'
 
 const route = useRoute()
@@ -38,6 +38,13 @@ const adminSections = [
     label: '审计日志',
     icon: Operation,
     summary: '查询高风险操作记录与审计明细。',
+  },
+  {
+    name: 'admin-risks',
+    path: '/admin/risks',
+    label: '风险监控',
+    icon: Warning,
+    summary: '查看考试会话风险评分与防作弊事件。',
   },
 ]
 
@@ -124,7 +131,7 @@ const goSection = (section) => {
 
 .admin-nav-list {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 8px;
 }
 

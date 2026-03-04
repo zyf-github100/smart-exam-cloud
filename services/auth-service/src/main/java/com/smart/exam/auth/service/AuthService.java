@@ -68,6 +68,8 @@ public class AuthService {
                     "EXAM_SESSION_START",
                     "EXAM_ANSWER_SAVE",
                     "EXAM_SESSION_SUBMIT",
+                    "EXAM_ANTI_CHEAT_EVENT_REPORT",
+                    "EXAM_ANTI_CHEAT_RISK_VIEW",
                     "GRADING_TASK_VIEW",
                     "GRADING_MANUAL_SCORE",
                     "QUESTION_CREATE",
@@ -83,6 +85,7 @@ public class AuthService {
             ),
             "TEACHER", List.of(
                     "EXAM_CREATE",
+                    "EXAM_ANTI_CHEAT_RISK_VIEW",
                     "GRADING_TASK_VIEW",
                     "GRADING_MANUAL_SCORE",
                     "QUESTION_CREATE",
@@ -100,6 +103,7 @@ public class AuthService {
                     "EXAM_SESSION_START",
                     "EXAM_ANSWER_SAVE",
                     "EXAM_SESSION_SUBMIT",
+                    "EXAM_ANTI_CHEAT_EVENT_REPORT",
                     "USER_SELF_VIEW"
             )
     );

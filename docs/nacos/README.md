@@ -106,3 +106,19 @@ If your Nacos address/account changes, set these before starting services:
 
 - `smart-exam.exam.status-sync-initial-delay-ms`
 - `smart-exam.exam.status-sync-interval-ms`
+
+## 7. Anti-Cheat Rule Keys (Batch 2)
+
+`exam-service.yaml` now also supports configurable anti-cheat rule parameters:
+
+- `smart-exam.exam.anti-cheat.recent-events-limit`
+- `smart-exam.exam.anti-cheat.page-default-size`
+- `smart-exam.exam.anti-cheat.page-max-size`
+- `smart-exam.exam.anti-cheat.max-future-skew-minutes`
+- `smart-exam.exam.anti-cheat.repeat-window-minutes`
+- `smart-exam.exam.anti-cheat.repeat-penalty-score`
+- `smart-exam.exam.anti-cheat.level-step-percent`
+- `smart-exam.exam.anti-cheat.medium-threshold`
+- `smart-exam.exam.anti-cheat.high-threshold`
+- `smart-exam.exam.anti-cheat.critical-threshold`
+- `smart-exam.exam.anti-cheat.event-base-scores.*`
