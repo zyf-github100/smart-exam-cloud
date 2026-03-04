@@ -65,19 +65,22 @@ smart-exam-cloud/
   - `POST /api/v1/exams/{examId}/start`
   - `PUT /api/v1/sessions/{sessionId}/answers`
   - `POST /api/v1/sessions/{sessionId}/submit`
+  - 考试状态自动流转：`NOT_STARTED -> RUNNING -> FINISHED`
   - 交卷发布 `exam.submitted` 事件
 
 - 判卷 `grading-service`（`grading_db` + Redis + RabbitMQ）
   - 监听 `exam.submitted.q`
-  - 生成判卷任务
+  - 基于考生答案与标准答案进行客观题自动判分（`SINGLE/MULTI/JUDGE/FILL`）
+  - 按试卷题目明细生成 `g_question_score`，主观题（`SHORT`）进入人工评分
   - `GET /api/v1/grading/tasks`
   - `POST /api/v1/grading/tasks/{taskId}/manual-score`
-  - 发布 `score.published` 事件
+  - 发布携带每题得分明细的 `score.published` 事件
 
 - 分析 `analysis-service`（`analysis_db` + Redis + RabbitMQ）
   - 监听 `score.published.q`
+  - 沉淀会话-题目得分快照（`a_session_question_score`）
   - `GET /api/v1/reports/exams/{examId}/score-distribution`
-  - `GET /api/v1/reports/exams/{examId}/question-accuracy-top`
+  - `GET /api/v1/reports/exams/{examId}/question-accuracy-top`（基于真实判分结果聚合）
 
 ## 3. 本地启动
 

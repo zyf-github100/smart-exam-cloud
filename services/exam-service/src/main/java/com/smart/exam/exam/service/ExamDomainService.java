@@ -38,6 +38,7 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.HashMap;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -90,7 +91,7 @@ public class ExamDomainService {
         entity.setStartTime(request.getStartTime());
         entity.setEndTime(request.getEndTime());
         entity.setAntiCheatLevel(request.getAntiCheatLevel());
-        entity.setStatus(ExamStatus.NOT_STARTED.name());
+        entity.setStatus(resolveExamStatus(entity.getStartTime(), entity.getEndTime(), LocalDateTime.now()).name());
         entity.setCreatedBy(parseLong("createdBy", userId));
         examMapper.insert(entity);
 
@@ -220,9 +221,10 @@ public class ExamDomainService {
     }
 
     public Exam getExam(String examId) {
+        LocalDateTime now = LocalDateTime.now();
         String cacheKey = EXAM_CACHE_PREFIX + examId;
         Exam cached = getCache(cacheKey, Exam.class);
-        if (cached != null) {
+        if (cached != null && cached.getStatus() == resolveExamStatus(cached.getStartTime(), cached.getEndTime(), now)) {
             return cached;
         }
 
@@ -230,10 +232,44 @@ public class ExamDomainService {
         if (entity == null) {
             throw new BizException(ErrorCode.NOT_FOUND, "Exam not found");
         }
+        syncExamStatusIfNeeded(entity, now);
 
         Exam exam = toExam(entity);
         putExamCache(exam);
         return exam;
+    }
+
+    @Transactional
+    public int syncExamStatuses() {
+        LocalDateTime now = LocalDateTime.now();
+        int updatedCount = 0;
+
+        List<ExamEntity> toRunning = examMapper.selectList(
+                Wrappers.lambdaQuery(ExamEntity.class)
+                        .eq(ExamEntity::getStatus, ExamStatus.NOT_STARTED.name())
+                        .le(ExamEntity::getStartTime, now)
+                        .gt(ExamEntity::getEndTime, now)
+        );
+        for (ExamEntity entity : toRunning) {
+            entity.setStatus(ExamStatus.RUNNING.name());
+            examMapper.updateById(entity);
+            evictExamCache(String.valueOf(entity.getId()));
+            updatedCount++;
+        }
+
+        List<ExamEntity> toFinished = examMapper.selectList(
+                Wrappers.lambdaQuery(ExamEntity.class)
+                        .in(ExamEntity::getStatus, ExamStatus.NOT_STARTED.name(), ExamStatus.RUNNING.name())
+                        .le(ExamEntity::getEndTime, now)
+        );
+        for (ExamEntity entity : toFinished) {
+            entity.setStatus(ExamStatus.FINISHED.name());
+            examMapper.updateById(entity);
+            evictExamCache(String.valueOf(entity.getId()));
+            updatedCount++;
+        }
+
+        return updatedCount;
     }
 
     private ExamSessionEntity getSessionEntity(long sessionId) {
@@ -302,8 +338,36 @@ public class ExamDomainService {
         return exam;
     }
 
+    private void syncExamStatusIfNeeded(ExamEntity entity, LocalDateTime now) {
+        ExamStatus expected = resolveExamStatus(entity.getStartTime(), entity.getEndTime(), now);
+        if (expected.name().equals(entity.getStatus())) {
+            return;
+        }
+        entity.setStatus(expected.name());
+        examMapper.updateById(entity);
+        evictExamCache(String.valueOf(entity.getId()));
+    }
+
+    private ExamStatus resolveExamStatus(LocalDateTime startTime, LocalDateTime endTime, LocalDateTime now) {
+        if (!now.isBefore(endTime)) {
+            return ExamStatus.FINISHED;
+        }
+        if (!now.isBefore(startTime)) {
+            return ExamStatus.RUNNING;
+        }
+        return ExamStatus.NOT_STARTED;
+    }
+
     private void putExamCache(Exam exam) {
         putCache(EXAM_CACHE_PREFIX + exam.getId(), exam, EXAM_CACHE_TTL);
+    }
+
+    private void evictExamCache(String examId) {
+        try {
+            redisTemplate.delete(EXAM_CACHE_PREFIX + examId);
+        } catch (Exception ex) {
+            log.warn("Failed to evict exam cache, examId={}", examId, ex);
+        }
     }
 
     private <T> T getCache(String key, Class<T> clazz) {

@@ -98,3 +98,10 @@ If your Nacos address/account changes, set these before starting services:
 - `smart-exam.mq.exam-submitted.retry-ttl-ms`
 - `smart-exam.mq.score-published.max-retries`
 - `smart-exam.mq.score-published.retry-ttl-ms`
+
+## 6. Exam Status Auto-Transition Keys
+
+`exam-service.yaml` includes scheduler keys for automatic status transition:
+
+- `smart-exam.exam.status-sync-initial-delay-ms`
+- `smart-exam.exam.status-sync-interval-ms`

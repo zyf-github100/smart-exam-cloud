@@ -96,18 +96,21 @@ flowchart LR
 - 考试定义管理。
 - 会话生命周期管理。
 - 作答保存与提交。
+- 考试状态自动流转调度（`NOT_STARTED -> RUNNING -> FINISHED`）。
 - 发布交卷事件。
 
 ### 4.6 grading-service
 
 - 消费交卷事件并生成任务。
+- 基于标准答案执行客观题自动判分（`SINGLE/MULTI/JUDGE/FILL`）。
+- 当前实现通过 MySQL 跨 schema 只读查询 `exam_db/question_db` 完成判题数据组装。
 - 人工评分流程。
-- 发布成绩事件。
+- 发布包含每题得分明细的成绩事件。
 
 ### 4.7 analysis-service
 
 - 消费成绩事件并沉淀快照。
-- 报表服务（分数分布、TopN）。
+- 报表服务（分数分布、基于真实判分聚合的 TopN）。
 - 报表缓存与失效。
 
 ### 4.8 common 模块
@@ -140,7 +143,7 @@ flowchart LR
 - `question_db`：`q_question`、`q_paper`、`q_paper_question`
 - `exam_db`：`e_exam`、`e_exam_session`、`e_answer`
 - `grading_db`：`g_grading_task`、`g_question_score`
-- `analysis_db`：`a_score`
+- `analysis_db`：`a_score`、`a_session_question_score`
 
 关键约束：
 
@@ -148,6 +151,7 @@ flowchart LR
 - `e_answer(session_id, question_id)` 唯一。
 - `g_grading_task(session_id)` 唯一。
 - `a_score(session_id)` 唯一。
+- `a_session_question_score(session_id, question_id)` 唯一。
 
 设计原则：
 
@@ -190,7 +194,8 @@ Redis 主要用途：
 事件契约：
 
 - `ExamSubmittedEvent`：`eventId`、`examId`、`sessionId`、`userId`、`submittedAt`
-- `ScorePublishedEvent`：`eventId`、`examId`、`sessionId`、`userId`、`totalScore`、`publishedAt`
+- `ScorePublishedEvent`：`eventId`、`examId`、`sessionId`、`userId`、`totalScore`、`publishedAt`、`questionScores[]`
+  - `questionScores[]` 字段：`questionId`、`maxScore`、`gotScore`、`objective`
 
 一致性说明：
 
@@ -271,8 +276,8 @@ P0：
 
 P1：
 
-- 考试状态自动调度。
-- 真正题目正确率统计链路。
+- 考试状态自动调度。[已完成，2026-03-04]
+- 真正题目正确率统计链路。[已完成，2026-03-04]
 - 自动判题规则引擎化。
 
 P2：

@@ -97,6 +97,11 @@ docker exec -i smart-exam-mysql mysql -uroot -proot < docs/sql/02_core_tables.sq
 
 详细步骤见：`docs/nacos/README.md`
 
+其中 `exam-service.yaml` 新增了考试状态自动流转调度参数：
+
+- `smart-exam.exam.status-sync-initial-delay-ms`
+- `smart-exam.exam.status-sync-interval-ms`
+
 ## 7. 本地地址建议
 
 `application.yml` 和 `docs/nacos/*.yaml` 默认使用 `192.168.242.10`。  
@@ -183,6 +188,26 @@ curl http://localhost:9000/api/v1/users/me \
 - `exam.submitted.q` / `exam.submitted.retry.q` / `exam.submitted.dlq.q`
 - `score.published.q` / `score.published.retry.q` / `score.published.dlq.q`
 
+### 10.4 真实判题与正确率联调检查
+
+当前链路已改为真实数据判分：
+
+- `grading-service` 在消费 `exam.submitted` 后，会根据 `exam_db.e_answer` 与题库标准答案计算客观分。
+- 客观题：`SINGLE`、`MULTI`、`JUDGE`、`FILL` 自动判分。
+- 主观题：`SHORT` 进入 `MANUAL_REQUIRED`，由教师人工评分后发布最终成绩。
+- `analysis-service` 会消费 `score.published` 事件中的每题得分快照并落库到 `a_session_question_score`，`question-accuracy-top` 基于真实聚合结果返回。
+
+建议验证步骤：
+
+1. 创建同时包含客观题和 `SHORT` 题的试卷并完成交卷。
+2. 在阅卷页确认任务状态为 `MANUAL_REQUIRED`，提交人工评分后变更为 `DONE`。
+3. 调用 `GET /api/v1/reports/exams/{examId}/question-accuracy-top?top=10`，确认题目维度返回真实准确率。
+
+### 10.5 考试状态自动流转检查
+
+- `exam-service` 已启用定时调度，按时间窗自动更新状态：`NOT_STARTED -> RUNNING -> FINISHED`。
+- 除定时任务外，读取考试详情时也会做一次状态兜底同步，避免缓存状态滞后。
+
 ## 12. 常见问题
 
 ### 12.1 服务启动后连不上 Nacos
@@ -207,6 +232,11 @@ curl http://localhost:9000/api/v1/users/me \
 - 通常是你在引入重试/DLQ 前已创建过同名队列（无 DLX 参数）
 - 本地可执行 `docker compose down -v` 清理数据卷后重启中间件
 - 然后按第 5 节重建数据库，再重新启动服务
+
+### 12.5 analysis-service 报表接口报表不存在 `a_session_question_score`
+
+- 说明你使用的是旧数据库结构（未包含新表）
+- 重新执行 `docs/sql/02_core_tables.sql`，或手动创建 `a_session_question_score`
 
 ## 13. 常用命令
 

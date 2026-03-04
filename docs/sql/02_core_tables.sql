@@ -136,3 +136,17 @@ CREATE TABLE IF NOT EXISTS a_score (
     UNIQUE KEY uk_a_score_session_id(session_id),
     INDEX idx_a_score_exam_id(exam_id)
 );
+
+CREATE TABLE IF NOT EXISTS a_session_question_score (
+    id BIGINT PRIMARY KEY,
+    exam_id BIGINT NOT NULL,
+    session_id BIGINT NOT NULL,
+    question_id BIGINT NOT NULL,
+    max_score DECIMAL(10,2) NOT NULL,
+    got_score DECIMAL(10,2) NOT NULL,
+    is_objective TINYINT NOT NULL DEFAULT 1,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_a_session_question(session_id, question_id),
+    INDEX idx_a_session_question_exam_objective(exam_id, is_objective),
+    INDEX idx_a_session_question_exam_question(exam_id, question_id)
+);

@@ -12,3 +12,7 @@ snowflake:
   worker-id: 3
   datacenter-id: 1
 
+smart-exam:
+  exam:
+    status-sync-initial-delay-ms: 10000
+    status-sync-interval-ms: 30000
