@@ -52,6 +52,8 @@ smart-exam-cloud/
   - 登录响应与 JWT claim 携带权限码集合（`permissions`）
   - 权限来源优先读取角色权限矩阵（`admin_db.sys_role_permission`），读取失败时按角色默认权限回退
   - 账号来源：`sys_user`
+  - 密码策略：默认仅接受 BCrypt 密码；可通过 `ALLOW_LEGACY_PLAIN_PASSWORD=true` 临时开启历史明文兼容迁移窗口
+  - JWT 密钥：必须通过 `JWT_SECRET` 注入（明文或 Base64，解码后至少 32 字节）
   - 首次登录演示账号会自动补齐：`admin/teacher1/stu1`，密码 `123456`
 
 - 用户 `user-service`（`user_db` + Redis）
@@ -126,6 +128,7 @@ smart-exam-cloud/
   - `GET /api/v1/admin/configs`
   - `PUT /api/v1/admin/configs/{configKey}`
   - `GET /api/v1/admin/audits`
+  - 密码重置策略：新密码需满足强度要求（8~64 位，包含大小写字母、数字、特殊字符）
 
 ## 3. 本地启动
 
@@ -178,6 +181,10 @@ docker compose ps nacos
 - `NACOS_PASSWORD`
 - `NACOS_GROUP`
 - `NACOS_NAMESPACE`
+- `JWT_SECRET`（必填，至少 32 字节，支持明文或 Base64）
+- `ALLOW_LEGACY_PLAIN_PASSWORD`（可选，默认 `false`；仅用于历史明文密码迁移窗口）
+
+未设置 `JWT_SECRET` 或使用不合规密钥时，`auth-service/gateway-service` 会在启动阶段直接失败。
 
 ## 3.5 编译
 
@@ -222,11 +229,25 @@ curl http://localhost:9000/api/v1/users/me \
 - Nacos 用于服务注册发现与统一配置管理。
 - SQL 已包含必要索引与唯一约束（含 `e_exam_target(exam_id,student_id)` 发布去重、`e_exam_session(exam_id,user_id)` 会话唯一、事件落库去重相关约束）。
 
-## 6. 迭代进度（截至 2026-03-05）
+## 6. 迭代进度（截至 2026-03-06）
 
-- 管理员中心（用户治理、角色权限、系统配置、审计日志）已完成。
-- MQ 可靠投递与消费失败治理（重试、DLQ）已完成。
-- 考试状态自动流转、真实客观判题与题目正确率统计链路已完成。
-- 网关之外业务服务的接口级 RBAC（除 `admin-service`）已完成。
-- 老师成绩单查询（`/reports/exams/{examId}/score-sheet`）已完成。
-- 交卷-判卷链路一致性修复（提交失败回滚、判卷任务自愈）已完成。
+已完成：
+
+- 管理员中心（用户治理、角色权限、系统配置、审计日志）。
+- MQ 可靠投递与消费失败治理（重试、DLQ）。
+- 考试状态自动流转、真实客观判题与题目正确率统计链路。
+- 网关之外业务服务的接口级 RBAC（除 `admin-service`）。
+- 老师成绩单查询（`/reports/exams/{examId}/score-sheet`）。
+- 交卷-判卷链路一致性修复（提交失败回滚、判卷任务自愈）。
+
+部分完成：
+
+- 密码哈希化与密钥安全治理（已支持 BCrypt、默认关闭明文回退并提供迁移开关、JWT 密钥强校验与外置注入；待完成历史账号离线迁移与密钥托管体系化）。
+- 防作弊数据采集与规则引擎（事件采集、风险评分聚合与规则参数配置化已落地；完整防作弊能力仍在演进）。
+
+未完成：
+
+- 自动判题规则引擎化（当前为固定题型规则实现）。
+- 全链路审计日志。
+- 自动化测试体系（API 契约、集成、回归）与契约测试平台化。
+- 全链路压测与容量规划。

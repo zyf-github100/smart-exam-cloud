@@ -125,6 +125,13 @@ docker exec -i smart-exam-mysql mysql -uroot -proot < docs/sql/05_seed_teacher_q
 - MySQL 地址 -> `127.0.0.1:3306`
 - Redis 地址 -> `127.0.0.1:6379`
 - RabbitMQ 地址 -> `127.0.0.1:5672`
+- `JWT_SECRET` -> 必填（至少 32 字节，支持明文或 Base64）
+- `ALLOW_LEGACY_PLAIN_PASSWORD` -> 可选（默认 `false`，仅用于历史明文密码迁移窗口）
+
+密码与密钥安全基线（本地联调建议）：
+
+- `JWT_SECRET` 未设置、仍使用历史默认值、或解码后长度不足 32 字节时，`auth-service/gateway-service` 将在启动阶段失败。
+- 管理员重置密码需满足强度要求：8~64 位，且包含大小写字母、数字、特殊字符（不允许空白字符）。
 
 ## 8. 启动后端服务
 
@@ -463,6 +470,12 @@ curl "http://localhost:9000/api/v1/reports/exams/<examId>/score-sheet?keyword=st
 - 再检查 RabbitMQ 三组队列是否有堆积：`exam.submitted.*`、`score.published.*`。
 - 若 `grading-service` 已有同 `sessionId` 的历史脏任务，当前实现会自动识别并重建；仍异常时可清理该会话任务后重放消息。
 - 检查老师是否有 `GRADING_TASK_VIEW`、`REPORT_SCORE_DISTRIBUTION_VIEW` 权限。
+
+### 11.8 服务启动报 `security.jwt.secret` 相关错误
+
+- 先确认已设置 `JWT_SECRET`（明文或 Base64，解码后至少 32 字节）。
+- 若提示使用历史默认密钥，请更换为新密钥后重启 `auth-service` 与 `gateway-service`。
+- 若在迁移历史明文密码阶段需要临时兼容，可设置 `ALLOW_LEGACY_PLAIN_PASSWORD=true`，迁移完成后应立即恢复为 `false`。
 
 ## 12. 常用命令
 

@@ -86,6 +86,14 @@ If your Nacos address/account changes, set these before starting services:
 - `NACOS_PASSWORD`
 - `NACOS_GROUP`
 - `NACOS_NAMESPACE`
+- `JWT_SECRET` (required, at least 32 bytes; supports plain or Base64)
+- `ALLOW_LEGACY_PLAIN_PASSWORD` (optional, default `false`; only for temporary legacy password migration)
+
+JWT secret validation notes:
+
+- Service startup will fail if `JWT_SECRET` is empty.
+- Service startup will fail if `JWT_SECRET` still uses the historical default demo secret.
+- Service startup will fail if decoded secret length is less than 32 bytes.
 
 ## 5. MQ Reliability Config Keys
 

@@ -10,6 +10,7 @@ import com.smart.exam.auth.mapper.SysUserMapper;
 import com.smart.exam.common.core.error.BizException;
 import com.smart.exam.common.core.error.ErrorCode;
 import com.smart.exam.common.security.jwt.JwtUtil;
+import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -46,6 +47,7 @@ public class AuthService {
     private final RolePermissionReadMapper rolePermissionReadMapper;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+    private final boolean allowLegacyPlainPassword;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final Map<String, DemoUser> demoUsers = Map.of(
             "admin", new DemoUser(10001L, "admin", "123456", "ADMIN", "System Admin"),
@@ -112,12 +114,15 @@ public class AuthService {
                        SysUserMapper sysUserMapper,
                        RolePermissionReadMapper rolePermissionReadMapper,
                        StringRedisTemplate redisTemplate,
-                       ObjectMapper objectMapper) {
+                       ObjectMapper objectMapper,
+                       @Value("${smart-exam.auth.security.allow-legacy-plain-password:false}")
+                       boolean allowLegacyPlainPassword) {
         this.jwtUtil = jwtUtil;
         this.sysUserMapper = sysUserMapper;
         this.rolePermissionReadMapper = rolePermissionReadMapper;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
+        this.allowLegacyPlainPassword = allowLegacyPlainPassword;
     }
 
     public Map<String, Object> login(LoginRequest request) {
@@ -235,11 +240,18 @@ public class AuthService {
                 return false;
             }
         }
+        if (!allowLegacyPlainPassword) {
+            log.warn("Rejected legacy plain password login attempt for account");
+            return false;
+        }
         return rawPassword.equals(storedPasswordHash);
     }
 
     private void upgradePasswordHashIfNeeded(SysUserEntity user, String rawPassword) {
-        if (user == null || !StringUtils.hasText(rawPassword) || isBcryptHash(user.getPasswordHash())) {
+        if (user == null
+                || !StringUtils.hasText(rawPassword)
+                || isBcryptHash(user.getPasswordHash())
+                || !allowLegacyPlainPassword) {
             return;
         }
         try {

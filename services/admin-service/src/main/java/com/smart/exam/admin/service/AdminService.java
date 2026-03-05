@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -52,6 +53,8 @@ public class AdminService {
     private static final Duration ROLE_PERMISSION_CACHE_TTL = Duration.ofMinutes(10);
     private static final Duration MUTATION_DEDUP_TTL = Duration.ofSeconds(5);
     private static final long MAX_PAGE_SIZE = 100L;
+    private static final Pattern STRONG_PASSWORD_PATTERN =
+            Pattern.compile("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9])\\S{8,64}$");
     private static final String OVERVIEW_CACHE_KEY = "admin:overview";
     private static final String ROLES_CACHE_KEY = "admin:roles";
     private static final String PERMISSIONS_CACHE_KEY = "admin:permissions";
@@ -190,8 +193,14 @@ public class AdminService {
                               String userAgent) {
         guardMutationDedup(operatorId, "user-password-reset", userId);
 
+        String normalizedPassword = request.getNewPassword() == null ? "" : request.getNewPassword().trim();
+        if (!STRONG_PASSWORD_PATTERN.matcher(normalizedPassword).matches()) {
+            throw new BizException(ErrorCode.BAD_REQUEST,
+                    "Password must contain upper/lowercase letters, digits and special characters, length 8-64");
+        }
+
         SysUserEntity user = requireUser(userId);
-        user.setPasswordHash(passwordEncoder.encode(request.getNewPassword().trim()));
+        user.setPasswordHash(passwordEncoder.encode(normalizedPassword));
         user.setUpdatedAt(LocalDateTime.now());
         userMapper.updateById(user);
 

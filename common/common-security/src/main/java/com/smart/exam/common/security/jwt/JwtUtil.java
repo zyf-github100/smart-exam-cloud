@@ -14,23 +14,39 @@ import java.util.UUID;
 
 public class JwtUtil {
 
+    private static final int MIN_SECRET_BYTES = 32;
+    private static final String LEGACY_INSECURE_SECRET = "smart-exam-cloud-secret-key-must-be-at-least-32-bytes";
+
     private final JwtProperties properties;
     private final SecretKey secretKey;
 
     public JwtUtil(JwtProperties properties) {
         this.properties = properties;
-        byte[] keyBytes;
         String secret = properties.getSecret();
-        if (secret.matches("^[A-Za-z0-9+/=]+$") && secret.length() % 4 == 0) {
-            try {
-                keyBytes = Decoders.BASE64.decode(secret);
-            } catch (Exception ex) {
-                keyBytes = secret.getBytes(StandardCharsets.UTF_8);
-            }
-        } else {
-            keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException("security.jwt.secret must be configured (set JWT_SECRET)");
+        }
+        String normalizedSecret = secret.trim();
+        if (LEGACY_INSECURE_SECRET.equals(normalizedSecret)) {
+            throw new IllegalStateException("security.jwt.secret uses legacy insecure default value, please rotate");
+        }
+
+        byte[] keyBytes = resolveSecretBytes(normalizedSecret);
+        if (keyBytes.length < MIN_SECRET_BYTES) {
+            throw new IllegalStateException("security.jwt.secret must be at least 32 bytes after decoding");
         }
         this.secretKey = Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    private byte[] resolveSecretBytes(String secret) {
+        if (secret.matches("^[A-Za-z0-9+/=]+$") && secret.length() % 4 == 0) {
+            try {
+                return Decoders.BASE64.decode(secret);
+            } catch (Exception ignored) {
+                return secret.getBytes(StandardCharsets.UTF_8);
+            }
+        }
+        return secret.getBytes(StandardCharsets.UTF_8);
     }
 
     public String generateToken(String userId, String role, Map<String, Object> extraClaims) {
@@ -61,4 +77,3 @@ public class JwtUtil {
         return properties.getExpirationSeconds();
     }
 }
-

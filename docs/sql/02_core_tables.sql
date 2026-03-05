@@ -181,7 +181,7 @@ VALUES
 
 INSERT INTO sys_config (config_key, config_value, group_key, description, updated_by)
 VALUES
-    ('ADMIN_PASSWORD_RESET_MIN_LENGTH', '6', 'SECURITY', '管理员重置密码最小长度策略', 10001),
+    ('ADMIN_PASSWORD_RESET_MIN_LENGTH', '8', 'SECURITY', '管理员重置密码最小长度策略', 10001),
     ('ADMIN_AUDIT_RETENTION_DAYS', '180', 'SECURITY', '审计日志保留天数（建议按归档策略执行）', 10001),
     ('ADMIN_OVERVIEW_CACHE_SECONDS', '30', 'PERFORMANCE', '管理员概览缓存时间（秒）', 10001)
 ON DUPLICATE KEY UPDATE

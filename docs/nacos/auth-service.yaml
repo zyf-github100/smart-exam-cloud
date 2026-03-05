@@ -8,3 +8,7 @@ spring:
     redis:
       database: 3
 
+smart-exam:
+  auth:
+    security:
+      allow-legacy-plain-password: false

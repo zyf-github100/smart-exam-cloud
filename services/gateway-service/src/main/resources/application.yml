@@ -56,7 +56,7 @@ spring:
 
 security:
   jwt:
-    secret: "smart-exam-cloud-secret-key-must-be-at-least-32-bytes"
+    secret: ${JWT_SECRET:}
     expiration-seconds: 7200
 
 management:
