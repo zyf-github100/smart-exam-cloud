@@ -1,6 +1,7 @@
 package com.smart.exam.grading.mapper;
 
 import com.smart.exam.grading.model.scoring.PaperQuestionSnapshot;
+import com.smart.exam.grading.model.scoring.PaperQuestionDetailSnapshot;
 import com.smart.exam.grading.model.scoring.QuestionSnapshot;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -19,6 +20,23 @@ public interface QuestionReadMapper {
             ORDER BY order_no ASC, id ASC
             """)
     List<PaperQuestionSnapshot> selectPaperQuestionsByPaperId(@Param("paperId") Long paperId);
+
+    @Select("""
+            SELECT
+                pq.question_id AS questionId,
+                pq.score,
+                pq.order_no AS orderNo,
+                q.type,
+                q.stem,
+                q.analysis,
+                q.answer,
+                q.options_json AS optionsJson
+            FROM question_db.q_paper_question pq
+            INNER JOIN question_db.q_question q ON q.id = pq.question_id
+            WHERE pq.paper_id = #{paperId}
+            ORDER BY pq.order_no ASC, pq.id ASC
+            """)
+    List<PaperQuestionDetailSnapshot> selectPaperQuestionDetailsByPaperId(@Param("paperId") Long paperId);
 
     @Select("""
             <script>

@@ -11,6 +11,7 @@ public final class PermissionCodes {
     public static final String EXAM_SESSION_SUBMIT = "EXAM_SESSION_SUBMIT";
     public static final String EXAM_ANTI_CHEAT_EVENT_REPORT = "EXAM_ANTI_CHEAT_EVENT_REPORT";
     public static final String EXAM_ANTI_CHEAT_RISK_VIEW = "EXAM_ANTI_CHEAT_RISK_VIEW";
+    public static final String STUDENT_RESULT_VIEW = "STUDENT_RESULT_VIEW";
 
     public static final String GRADING_TASK_VIEW = "GRADING_TASK_VIEW";
     public static final String GRADING_MANUAL_SCORE = "GRADING_MANUAL_SCORE";

@@ -106,6 +106,7 @@ public class AuthService {
                     "EXAM_ANSWER_SAVE",
                     "EXAM_SESSION_SUBMIT",
                     "EXAM_ANTI_CHEAT_EVENT_REPORT",
+                    "STUDENT_RESULT_VIEW",
                     "USER_SELF_VIEW"
             )
     );

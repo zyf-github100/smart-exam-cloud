@@ -108,12 +108,15 @@ JWT secret validation notes:
 - `smart-exam.mq.score-published.max-retries`
 - `smart-exam.mq.score-published.retry-ttl-ms`
 
-## 6. Exam Status Auto-Transition Keys
+## 6. Exam Schedulers Keys
 
-`exam-service.yaml` includes scheduler keys for automatic status transition:
+`exam-service.yaml` includes scheduler keys for exam status transition and auto force-submit:
 
 - `smart-exam.exam.status-sync-initial-delay-ms`
 - `smart-exam.exam.status-sync-interval-ms`
+- `smart-exam.exam.auto-force-submit.initial-delay-ms`
+- `smart-exam.exam.auto-force-submit.interval-ms`
+- `smart-exam.exam.auto-force-submit.batch-size`
 
 ## 7. Anti-Cheat Rule Keys (Batch 2)
 

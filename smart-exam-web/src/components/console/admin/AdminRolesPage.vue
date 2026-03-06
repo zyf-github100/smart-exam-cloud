@@ -1,9 +1,12 @@
 <script setup>
 import { inject } from 'vue'
-import { prettyJson } from '../../../composables/useAsyncAction'
 import { ADMIN_CONSOLE_KEY } from '../../../composables/useAdminConsole'
 
 const admin = inject(ADMIN_CONSOLE_KEY)
+
+const roleStatusTag = (value) => (Number(value) === 1 ? 'success' : 'info')
+const roleStatusText = (value) => (Number(value) === 1 ? 'ENABLED' : 'DISABLED')
+const systemRoleText = (value) => (Number(value) === 1 ? 'YES' : 'NO')
 </script>
 
 <template>
@@ -38,7 +41,39 @@ const admin = inject(ADMIN_CONSOLE_KEY)
       </section>
     </div>
 
-    <pre class="json-block">{{ prettyJson(admin.selectedRoleDetail) }}</pre>
+    <template v-if="admin.selectedRoleDetail">
+      <el-descriptions :column="2" border size="small" class="role-detail-panel">
+        <el-descriptions-item label="Role Code">{{ admin.selectedRoleDetail.roleCode || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="Role Name">{{ admin.selectedRoleDetail.roleName || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="System Role">
+          {{ systemRoleText(admin.selectedRoleDetail.isSystem) }}
+        </el-descriptions-item>
+        <el-descriptions-item label="Status">
+          <el-tag :type="roleStatusTag(admin.selectedRoleDetail.status)">
+            {{ roleStatusText(admin.selectedRoleDetail.status) }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="Description" :span="2">
+          {{ admin.selectedRoleDetail.description || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item label="Permission Count" :span="2">
+          {{ (admin.selectedRoleDetail.permissions || []).length }}
+        </el-descriptions-item>
+      </el-descriptions>
+
+      <el-table
+        :data="admin.selectedRoleDetail.permissions || []"
+        size="small"
+        max-height="320"
+        class="role-perm-table"
+      >
+        <el-table-column prop="permissionCode" label="Permission Code" min-width="180" />
+        <el-table-column prop="permissionName" label="Permission Name" min-width="180" />
+        <el-table-column prop="moduleKey" label="Module" min-width="110" />
+        <el-table-column prop="description" label="Description" min-width="220" show-overflow-tooltip />
+      </el-table>
+    </template>
+    <el-empty v-else description="Please select a role" />
   </section>
   <section v-else class="console-block">
     <p class="hint-text">管理上下文初始化失败，请返回“管理员总览”后重试。</p>
@@ -68,5 +103,13 @@ const admin = inject(ADMIN_CONSOLE_KEY)
   font-size: 12px;
   font-weight: 700;
   color: #3b5547;
+}
+
+.role-detail-panel {
+  margin-top: 8px;
+}
+
+.role-perm-table {
+  margin-top: 10px;
 }
 </style>

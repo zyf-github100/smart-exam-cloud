@@ -1,6 +1,7 @@
 package com.smart.exam.exam.model;
 
 import java.util.List;
+import java.util.Map;
 
 public class ExamPaperQuestion {
 
@@ -9,7 +10,7 @@ public class ExamPaperQuestion {
     private String stem;
     private Integer score;
     private Integer orderNo;
-    private List<ExamPaperOption> options;
+    private List<Map<String, Object>> options;
 
     public String getQuestionId() {
         return questionId;
@@ -51,12 +52,11 @@ public class ExamPaperQuestion {
         this.orderNo = orderNo;
     }
 
-    public List<ExamPaperOption> getOptions() {
+    public List<Map<String, Object>> getOptions() {
         return options;
     }
 
-    public void setOptions(List<ExamPaperOption> options) {
+    public void setOptions(List<Map<String, Object>> options) {
         this.options = options;
     }
 }
-

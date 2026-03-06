@@ -723,7 +723,7 @@ onBeforeUnmount(() => {
           </article>
           <article class="metric-card">
             <span>总分 / 时长</span>
-            <strong>{{ estimatedScore }} / {{ form.timeLimitMinutes }} 分钟</strong>
+            <strong>总分 {{ estimatedScore }} 分，时长 {{ form.timeLimitMinutes }} 分钟</strong>
           </article>
         </div>
 
@@ -772,7 +772,7 @@ onBeforeUnmount(() => {
             <el-table-column prop="id" label="试卷 ID" min-width="150" />
             <el-table-column prop="name" label="试卷名称" min-width="220" show-overflow-tooltip />
             <el-table-column label="总分 / 时长" width="160">
-              <template #default="{ row }">{{ row.totalScore || 0 }} / {{ row.timeLimitMinutes || 0 }} 分钟</template>
+              <template #default="{ row }">总分 {{ row.totalScore || 0 }} 分，时长 {{ row.timeLimitMinutes || 0 }} 分钟</template>
             </el-table-column>
             <el-table-column label="创建时间" min-width="170">
               <template #default="{ row }">{{ formatDateTimeDisplay(row.createdAt) }}</template>
@@ -812,7 +812,7 @@ onBeforeUnmount(() => {
           </article>
           <article class="metric-card">
             <span>总分 / 时长</span>
-            <strong>{{ paperDetail.totalScore || 0 }} / {{ paperDetail.timeLimitMinutes || 0 }} 分钟</strong>
+            <strong>总分 {{ paperDetail.totalScore || 0 }} 分，时长 {{ paperDetail.timeLimitMinutes || 0 }} 分钟</strong>
           </article>
         </div>
 

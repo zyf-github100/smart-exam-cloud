@@ -33,9 +33,9 @@ import com.smart.exam.exam.model.AssignedExam;
 import com.smart.exam.exam.model.AnswerItem;
 import com.smart.exam.exam.model.Exam;
 import com.smart.exam.exam.model.ExamPaper;
-import com.smart.exam.exam.model.ExamPaperOption;
 import com.smart.exam.exam.model.ExamPaperQuestion;
 import com.smart.exam.exam.model.ExamStatus;
+import com.smart.exam.exam.model.SessionAnswer;
 import com.smart.exam.exam.model.SessionStatus;
 import com.smart.exam.exam.model.read.PaperQuestionSnapshot;
 import com.smart.exam.exam.model.read.PaperSnapshot;
@@ -381,6 +381,31 @@ public class ExamDomainService {
         return paper;
     }
 
+    public List<SessionAnswer> listSessionAnswers(String sessionId, String userId) {
+        long sessionLongId = parseLong("sessionId", sessionId);
+        ExamSessionEntity session = getSessionEntity(sessionLongId);
+        validateSessionOwner(session, userId);
+
+        List<AnswerEntity> entities = answerMapper.selectBySessionIdOrdered(sessionLongId);
+        if (entities == null || entities.isEmpty()) {
+            return List.of();
+        }
+
+        List<SessionAnswer> result = new ArrayList<>(entities.size());
+        for (AnswerEntity entity : entities) {
+            if (entity == null || entity.getQuestionId() == null) {
+                continue;
+            }
+            SessionAnswer item = new SessionAnswer();
+            item.setQuestionId(String.valueOf(entity.getQuestionId()));
+            item.setAnswerContent(readJsonObject(entity.getAnswerContent()));
+            item.setMarkedForReview(entity.getIsMarkedForReview() != null && entity.getIsMarkedForReview() == 1);
+            item.setUpdatedAt(entity.getUpdatedAt());
+            result.add(item);
+        }
+        return result;
+    }
+
     @Transactional
     public void saveAnswers(String sessionId, SaveAnswersRequest request, String userId) {
         long sessionLongId = parseLong("sessionId", sessionId);
@@ -691,6 +716,51 @@ public class ExamDomainService {
         return updatedCount;
     }
 
+    public List<Long> listExpiredInProgressSessionIds(long limit) {
+        long safeLimit = Math.max(1, Math.min(limit, 500));
+        List<Long> ids = examSessionMapper.selectExpiredInProgressSessionIds(LocalDateTime.now(), safeLimit);
+        return ids == null ? List.of() : ids;
+    }
+
+    @Transactional
+    public boolean forceSubmitExpiredSession(Long sessionId) {
+        if (sessionId == null) {
+            return false;
+        }
+        ExamSessionEntity session = getSessionEntity(sessionId);
+        if (!SessionStatus.IN_PROGRESS.name().equals(session.getStatus())) {
+            return false;
+        }
+
+        ExamEntity exam = examMapper.selectById(session.getExamId());
+        if (exam == null) {
+            throw new BizException(ErrorCode.NOT_FOUND, "Exam not found");
+        }
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(exam.getEndTime())) {
+            return false;
+        }
+        LocalDateTime effectiveSubmitTime = exam.getEndTime();
+        int updated = examSessionMapper.updateStatusIfMatched(
+                sessionId,
+                SessionStatus.IN_PROGRESS.name(),
+                SessionStatus.FORCE_SUBMITTED.name(),
+                effectiveSubmitTime
+        );
+        if (updated < 1) {
+            return false;
+        }
+
+        ExamSubmittedEvent event = new ExamSubmittedEvent();
+        event.setEventId(UUID.randomUUID().toString());
+        event.setExamId(String.valueOf(session.getExamId()));
+        event.setSessionId(String.valueOf(session.getId()));
+        event.setUserId(String.valueOf(session.getUserId()));
+        event.setSubmittedAt(OffsetDateTime.now());
+        publishSubmittedEvent(event);
+        return true;
+    }
+
     private void validateSessionOwner(ExamSessionEntity session, String userId) {
         if (!String.valueOf(session.getUserId()).equals(userId)) {
             throw new BizException(ErrorCode.FORBIDDEN, "Session does not belong to current user");
@@ -935,7 +1005,7 @@ public class ExamDomainService {
         question.setScore(snapshot.getScore());
         question.setOrderNo(snapshot.getOrderNo());
 
-        List<ExamPaperOption> options = parsePaperOptions(snapshot.getOptionsJson());
+        List<Map<String, Object>> options = parsePaperOptions(snapshot.getOptionsJson());
         if (isChoiceType(questionType) && options.size() < 2) {
             throw new BizException(ErrorCode.BAD_REQUEST, "Choice question must contain at least two options");
         }
@@ -943,29 +1013,37 @@ public class ExamDomainService {
         return question;
     }
 
-    private List<ExamPaperOption> parsePaperOptions(String rawOptionsJson) {
+    private List<Map<String, Object>> parsePaperOptions(String rawOptionsJson) {
         if (!StringUtils.hasText(rawOptionsJson)) {
             return List.of();
         }
         try {
-            List<ExamPaperOption> options = objectMapper.readValue(rawOptionsJson, new TypeReference<List<ExamPaperOption>>() {
-            });
+            List<Map<String, Object>> options = objectMapper.readValue(
+                    rawOptionsJson,
+                    new TypeReference<List<Map<String, Object>>>() {
+                    }
+            );
             if (options == null || options.isEmpty()) {
                 return List.of();
             }
-            List<ExamPaperOption> normalized = new ArrayList<>(options.size());
+            List<Map<String, Object>> normalized = new ArrayList<>(options.size());
             Set<String> keys = new HashSet<>();
-            for (ExamPaperOption option : options) {
-                if (option == null || !StringUtils.hasText(option.getKey()) || !StringUtils.hasText(option.getText())) {
+            for (Map<String, Object> option : options) {
+                if (option == null) {
                     throw new BizException(ErrorCode.BAD_REQUEST, "Question option is invalid");
                 }
-                String key = option.getKey().trim().toUpperCase(Locale.ROOT);
+                String rawKey = String.valueOf(option.getOrDefault("key", "")).trim();
+                String rawText = String.valueOf(option.getOrDefault("text", "")).trim();
+                if (!StringUtils.hasText(rawKey) || !StringUtils.hasText(rawText)) {
+                    throw new BizException(ErrorCode.BAD_REQUEST, "Question option is invalid");
+                }
+                String key = rawKey.toUpperCase(Locale.ROOT);
                 if (!keys.add(key)) {
                     throw new BizException(ErrorCode.BAD_REQUEST, "Duplicate question option key: " + key);
                 }
-                ExamPaperOption item = new ExamPaperOption();
-                item.setKey(key);
-                item.setText(option.getText().trim());
+                Map<String, Object> item = new HashMap<>();
+                item.put("key", key);
+                item.put("text", rawText);
                 normalized.add(item);
             }
             return normalized;

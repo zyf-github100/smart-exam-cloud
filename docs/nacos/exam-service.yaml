@@ -16,6 +16,10 @@ smart-exam:
   exam:
     status-sync-initial-delay-ms: 10000
     status-sync-interval-ms: 30000
+    auto-force-submit:
+      initial-delay-ms: 15000
+      interval-ms: 15000
+      batch-size: 200
     anti-cheat:
       recent-events-limit: 20
       page-default-size: 20

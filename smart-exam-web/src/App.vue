@@ -62,6 +62,7 @@ const activeTips = computed(() =>
 const recommendedVisibleFlow = computed(() =>
   visibleModules.value.length ? visibleModules.value.map((item) => item.label).join(' → ') : recommendedFlow
 )
+const isLoginRoute = computed(() => route.path === '/login')
 
 const goTo = (path) => {
   if (!path) return
@@ -85,6 +86,14 @@ const syncAuthState = () => {
 }
 
 const ensureRouteAccess = () => {
+  if (!authUser.value) {
+    goTo('/login')
+    return
+  }
+  if (route.path === '/login') {
+    goTo(getDefaultAccessiblePath(authUser.value))
+    return
+  }
   if (!visibleModules.value.length) {
     goTo('/connection')
     return
@@ -122,14 +131,26 @@ watch([() => route.path, visibleModules], ensureRouteAccess, { immediate: true }
 </script>
 
 <template>
-  <div class="app-shell">
+  <div v-if="isLoginRoute" class="login-route-shell">
+    <router-view v-slot="{ Component }">
+      <transition name="route-fade" mode="out-in">
+        <component :is="Component" :key="route.path" />
+      </transition>
+    </router-view>
+  </div>
+
+  <div v-else class="app-shell">
     <div class="bg-orb orb-a"></div>
     <div class="bg-orb orb-b"></div>
     <div class="bg-orb orb-c"></div>
 
     <header class="command-deck reveal-up">
       <div class="deck-brand">
-        <div class="brand-mark">SE</div>
+        <div class="brand-mark notranslate" translate="no" aria-label="Smart Exam">
+          <span class="brand-mark-ring"></span>
+          <span class="brand-mark-dot"></span>
+          <span class="brand-mark-text">SC</span>
+        </div>
         <div class="brand-copy">
           <p class="brand-kicker">Smart Exam Cloud</p>
           <h1 class="brand-title">学园考试指挥中心</h1>

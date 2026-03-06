@@ -29,6 +29,14 @@ const studentOptions = ref([])
 const assignedExams = ref([])
 const paperOptions = ref([])
 const publishedExams = ref([])
+const assignedExamStatusFilter = ref('ALL')
+const lastSavedAt = ref('')
+const hasUnsavedChanges = ref(false)
+const autoSaving = ref(false)
+const suspendDraftDirtyTracking = ref(false)
+const studentResult = ref(null)
+const resultReleaseStateMap = reactive({})
+let autoSaveTimer = null
 
 const typeLabelMap = {
   SINGLE: '单选题',
@@ -69,7 +77,44 @@ const answeredCount = computed(() =>
   paperQuestions.value.filter((question) => isDraftAnswered(getDraft(question.questionId), question.type)).length
 )
 
-const assignedExamCount = computed(() => assignedExams.value.length)
+const assignedExamStatusOptions = [
+  { value: 'ALL', label: '全部' },
+  { value: 'NOT_STARTED', label: '未开始' },
+  { value: 'RUNNING', label: '进行中' },
+  { value: 'FINISHED', label: '已结束' },
+  { value: 'SUBMITTED', label: '已提交' },
+  { value: 'FORCE_SUBMITTED', label: '已自动交卷' },
+]
+const canViewStudentResult = computed(
+  () =>
+    canOpenStudentPanel.value &&
+    hasAnyPermission(getSavedUser(), ['STUDENT_RESULT_VIEW'])
+)
+const canManageResultRelease = computed(
+  () =>
+    canOpenTeacherPanel.value &&
+    hasAnyPermission(getSavedUser(), ['GRADING_TASK_VIEW'])
+)
+const filteredAssignedExams = computed(() =>
+  assignedExams.value.filter((exam) => {
+    const filterValue = String(assignedExamStatusFilter.value || 'ALL').toUpperCase()
+    if (filterValue === 'ALL') return true
+    const examStatus = String(exam?.status || '').toUpperCase()
+    const sessionStatus = String(exam?.sessionStatus || '').toUpperCase()
+    if (filterValue === 'SUBMITTED' || filterValue === 'FORCE_SUBMITTED') {
+      return sessionStatus === filterValue
+    }
+    if (filterValue === 'RUNNING') {
+      return examStatus === 'RUNNING' && sessionStatus !== 'SUBMITTED' && sessionStatus !== 'FORCE_SUBMITTED'
+    }
+    if (filterValue === 'FINISHED') {
+      return examStatus === 'FINISHED' && sessionStatus !== 'SUBMITTED' && sessionStatus !== 'FORCE_SUBMITTED'
+    }
+    return examStatus === filterValue
+  })
+)
+const assignedExamCount = computed(() => filteredAssignedExams.value.length)
+const assignedExamTotalCount = computed(() => assignedExams.value.length)
 const publishedExamCount = computed(() => publishedExams.value.length)
 const canAccessAssignedExams = computed(() => canOpenStudentPanel.value)
 const canLoadStudentDirectory = computed(() => canOpenTeacherPanel.value)
@@ -83,6 +128,7 @@ const selectedPaperOption = computed(
   () => paperOptions.value.find((item) => String(item.id) === String(createForm.paperId || '')) || null
 )
 const antiCheatThrottleMs = 1500
+const autoSaveIntervalMs = 30 * 1000
 const antiCheatLastSentAt = reactive({})
 
 const formatDateTimeDisplay = (value) => {
@@ -113,6 +159,7 @@ const judgeStatusType = (status) => {
 const judgeSessionStatusType = (status) => {
   const value = String(status || '').toLowerCase()
   if (value.includes('submitted') || value.includes('已提交') || value.includes('finished')) return 'success'
+  if (value.includes('force_submitted') || value.includes('自动')) return 'warning'
   if (value.includes('running') || value.includes('进行') || value.includes('started')) return 'warning'
   return 'info'
 }
@@ -129,7 +176,33 @@ const toSessionStatusText = (status) => {
   const value = String(status || '').toUpperCase()
   if (value === 'IN_PROGRESS') return '作答中'
   if (value === 'SUBMITTED') return '已提交'
+  if (value === 'FORCE_SUBMITTED') return '已自动交卷'
   return status || '-'
+}
+
+const hasExamEnded = (exam) => {
+  const normalized = String(exam?.endTime || '').replace(' ', 'T')
+  const endTime = new Date(normalized)
+  return !Number.isNaN(endTime.getTime()) && Date.now() >= endTime.getTime()
+}
+
+const isResultDetailReleasedForExam = (exam) => {
+  if (!exam?.id) return false
+  if (hasExamEnded(exam)) return true
+  return Boolean(resultReleaseStateMap[String(exam.id)])
+}
+
+const toResultReleaseText = (exam) => {
+  if (hasExamEnded(exam)) return '考试结束自动开放'
+  if (isResultDetailReleasedForExam(exam)) return '老师已发布'
+  return '未开放'
+}
+
+const canReleaseResultDetail = (exam) => {
+  if (!canManageResultRelease.value) return false
+  if (!exam?.id) return false
+  if (hasExamEnded(exam)) return false
+  return !isResultDetailReleasedForExam(exam)
 }
 
 const canStartAssignedExam = (exam) => {
@@ -137,17 +210,27 @@ const canStartAssignedExam = (exam) => {
   const status = String(exam.status || '').toUpperCase()
   if (status !== 'RUNNING') return false
   const sessionStatus = String(exam.sessionStatus || '').toUpperCase()
-  return sessionStatus !== 'SUBMITTED'
+  return sessionStatus !== 'SUBMITTED' && sessionStatus !== 'FORCE_SUBMITTED'
 }
+
+const canViewResultFromAssignedExam = (exam) => {
+  const sessionStatus = String(exam?.sessionStatus || '').toUpperCase()
+  return sessionStatus === 'SUBMITTED' || sessionStatus === 'FORCE_SUBMITTED'
+}
+
+const canContinueAssignedExam = (exam) => String(exam?.sessionStatus || '').toUpperCase() === 'IN_PROGRESS'
+
+const canOperateAssignedExam = (exam) =>
+  canStartAssignedExam(exam) || canContinueAssignedExam(exam) || canViewResultFromAssignedExam(exam)
 
 const resolveStartActionText = (exam) => {
   if (!exam) return '开始考试'
+  const sessionStatus = String(exam.sessionStatus || '').toUpperCase()
+  if (sessionStatus === 'IN_PROGRESS') return '继续作答'
+  if (sessionStatus === 'SUBMITTED' || sessionStatus === 'FORCE_SUBMITTED') return '查看成绩'
   const status = String(exam.status || '').toUpperCase()
   if (status === 'NOT_STARTED') return '未开始'
   if (status === 'FINISHED') return '已结束'
-  const sessionStatus = String(exam.sessionStatus || '').toUpperCase()
-  if (sessionStatus === 'IN_PROGRESS') return '继续作答'
-  if (sessionStatus === 'SUBMITTED') return '已提交'
   return '开始考试'
 }
 
@@ -181,6 +264,68 @@ const formatDateTimeForBackend = (value) => {
 }
 
 const resolveCurrentSessionId = () => String(submitSessionId.value || startedSession.value?.sessionId || '').trim()
+const resolveCurrentSessionStatus = () => {
+  const status = String(startedSession.value?.status || submitResult.value?.status || '').toUpperCase()
+  if (status) return status
+  return resolveCurrentSessionId() ? 'IN_PROGRESS' : ''
+}
+const isCurrentSessionEditable = () => resolveCurrentSessionStatus() === 'IN_PROGRESS'
+const saveIndicatorText = computed(() => {
+  if (loading.saveAnswers || autoSaving.value) return '保存中...'
+  if (hasUnsavedChanges.value) return '有未保存修改'
+  if (lastSavedAt.value) return `最近保存：${formatDateTimeDisplay(lastSavedAt.value)}`
+  return '暂无未保存修改'
+})
+const formatAnswerDisplay = (value) => {
+  if (value === null || value === undefined || value === '') return '-'
+  if (Array.isArray(value)) return value.map((item) => String(item)).join(', ')
+  if (value === true) return '正确'
+  if (value === false) return '错误'
+  if (typeof value === 'object') return JSON.stringify(value)
+  return String(value)
+}
+
+const normalizeScoreNumber = (value) => {
+  if (value === null || value === undefined || value === '') return null
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  const text = String(value).trim()
+  if (!text) return null
+  const matched = text.match(/-?\d+(?:\.\d+)?/)
+  if (!matched) return null
+  const parsed = Number(matched[0])
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+const formatScoreDisplay = (value) => {
+  const score = normalizeScoreNumber(value)
+  if (score === null) return '-'
+  if (Number.isInteger(score)) return String(score)
+  return String(score).replace(/(\.\d*?[1-9])0+$/, '$1').replace(/\.0+$/, '')
+}
+
+const normalizeStudentResultPayload = (payload) => {
+  if (!payload || typeof payload !== 'object') return payload
+  const summary = payload.summary && typeof payload.summary === 'object'
+    ? {
+        ...payload.summary,
+        objectiveScore: normalizeScoreNumber(payload.summary.objectiveScore),
+        subjectiveScore: normalizeScoreNumber(payload.summary.subjectiveScore),
+        totalScore: normalizeScoreNumber(payload.summary.totalScore),
+      }
+    : payload.summary
+  const questions = Array.isArray(payload.questions)
+    ? payload.questions.map((item) => ({
+        ...item,
+        gotScore: normalizeScoreNumber(item?.gotScore),
+        maxScore: normalizeScoreNumber(item?.maxScore),
+      }))
+    : payload.questions
+  return {
+    ...payload,
+    summary,
+    questions,
+  }
+}
 
 const canReportAntiCheatEvent = () => {
   if (activePage.value !== 'student') return false
@@ -243,6 +388,17 @@ const handleOffline = () => {
   reportAntiCheatEvent('NETWORK_DISCONNECT', { online: false })
 }
 
+const handleBeforeUnload = (event) => {
+  const shouldWarn =
+    activePage.value === 'student' &&
+    Boolean(resolveCurrentSessionId()) &&
+    isCurrentSessionEditable() &&
+    hasUnsavedChanges.value
+  if (!shouldWarn) return
+  event.preventDefault()
+  event.returnValue = ''
+}
+
 const bindAntiCheatListeners = () => {
   if (typeof window === 'undefined' || typeof document === 'undefined') return
   document.addEventListener('visibilitychange', handleVisibilityChange)
@@ -250,6 +406,7 @@ const bindAntiCheatListeners = () => {
   window.addEventListener('copy', handleCopy)
   window.addEventListener('paste', handlePaste)
   window.addEventListener('offline', handleOffline)
+  window.addEventListener('beforeunload', handleBeforeUnload)
 }
 
 const unbindAntiCheatListeners = () => {
@@ -259,6 +416,26 @@ const unbindAntiCheatListeners = () => {
   window.removeEventListener('copy', handleCopy)
   window.removeEventListener('paste', handlePaste)
   window.removeEventListener('offline', handleOffline)
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+}
+
+const stopAutoSave = () => {
+  if (!autoSaveTimer) return
+  window.clearInterval(autoSaveTimer)
+  autoSaveTimer = null
+}
+
+const startAutoSave = () => {
+  if (typeof window === 'undefined') return
+  if (autoSaveTimer) return
+  autoSaveTimer = window.setInterval(async () => {
+    if (activePage.value !== 'student') return
+    if (!resolveCurrentSessionId()) return
+    if (!isCurrentSessionEditable()) return
+    if (!hasUnsavedChanges.value) return
+    if (autoSaving.value || loading.saveAnswers) return
+    await saveAnswers({ silent: true })
+  }, autoSaveIntervalMs)
 }
 
 const normalizeDraftAnswer = (type, rawValue) => {
@@ -331,6 +508,32 @@ const syncDraftsByPaper = () => {
       delete answerDrafts[questionId]
     }
   })
+}
+
+const applySessionAnswers = (savedAnswers = []) => {
+  if (!Array.isArray(savedAnswers) || !savedAnswers.length) return
+  const answerMap = new Map(
+    savedAnswers.map((item) => [String(item?.questionId || ''), item]).filter(([key]) => key)
+  )
+  paperQuestions.value.forEach((question) => {
+    const key = String(question.questionId || '')
+    const draft = answerDrafts[key]
+    if (!draft) return
+    const saved = answerMap.get(key)
+    if (!saved) return
+    draft.answerContent = normalizeDraftAnswer(question.type, saved.answerContent)
+    draft.markedForReview = Boolean(saved.markedForReview)
+  })
+}
+
+const loadSessionAnswers = async (sessionId) => {
+  const targetSessionId = String(sessionId || '').trim()
+  if (!targetSessionId) return
+  const data = await run('sessionAnswers', () => api.getSessionAnswers(targetSessionId), {
+    errorMessage: '历史答案加载失败，请稍后重试',
+  })
+  if (data === null) return
+  applySessionAnswers(Array.isArray(data) ? data : [])
 }
 
 const createExam = async () => {
@@ -429,16 +632,84 @@ const loadAssignedExams = async () => {
     return
   }
   const data = await run('assignedExams', () => api.listAssignedExams())
-  assignedExams.value = Array.isArray(data) ? data : []
+  const exams = Array.isArray(data) ? data : []
+  assignedExams.value = exams
+
+  // Keep a usable session context so "成绩与解析" can be refreshed without re-entering the exam flow.
+  if (!resolveCurrentSessionId()) {
+    const candidate =
+      exams.find((item) => String(item?.sessionStatus || '').toUpperCase() === 'IN_PROGRESS' && item?.sessionId) ||
+      exams.find((item) => canViewResultFromAssignedExam(item) && item?.sessionId) ||
+      null
+    if (candidate) {
+      startedSession.value = {
+        sessionId: candidate.sessionId,
+        examId: candidate.examId,
+        status: candidate.sessionStatus || 'IN_PROGRESS',
+        startTime: candidate.sessionStartTime || null,
+        deadlineTime: candidate.endTime || null,
+        studentId: getSavedUser()?.id || '',
+      }
+      submitSessionId.value = candidate.sessionId
+    }
+  }
 }
 
 const loadPublishedExams = async () => {
   if (!canLoadPublishedExams.value) {
     publishedExams.value = []
+    Object.keys(resultReleaseStateMap).forEach((key) => {
+      delete resultReleaseStateMap[key]
+    })
     return
   }
   const data = await run('publishedExams', () => api.listPublishedExams())
-  publishedExams.value = Array.isArray(data) ? data : []
+  const exams = Array.isArray(data) ? data : []
+  publishedExams.value = exams
+
+  Object.keys(resultReleaseStateMap).forEach((key) => {
+    delete resultReleaseStateMap[key]
+  })
+  if (!canManageResultRelease.value || !exams.length) return
+
+  await Promise.all(
+    exams
+      .map((exam) => String(exam?.id || '').trim())
+      .filter((examId) => examId)
+      .map(async (examId) => {
+        try {
+          const detail = await api.getExamResultRelease(examId)
+          resultReleaseStateMap[examId] = Boolean(detail?.released)
+        } catch (error) {
+          console.warn(`result release state load failed, examId=${examId}`, error)
+        }
+      })
+  )
+}
+
+const releaseResultDetailForExam = async (exam) => {
+  const examId = String(exam?.id || '').trim()
+  if (!examId) {
+    ElMessage.warning('考试 ID 不存在，无法开放解析')
+    return
+  }
+  if (!canReleaseResultDetail(exam)) {
+    ElMessage.info('当前考试无需重复开放解析')
+    return
+  }
+
+  const data = await run(
+    `releaseResultDetail:${examId}`,
+    () => api.updateExamResultRelease(examId, true),
+    { successMessage: '已开放该考试的标准答案与解析' }
+  )
+  if (!data) return
+
+  resultReleaseStateMap[examId] = true
+  if (studentResult.value?.examId && String(studentResult.value.examId) === examId) {
+    studentResult.value.detailReleased = true
+    studentResult.value.detailMessage = ''
+  }
 }
 
 const syncPageByCurrentRole = () => {
@@ -464,7 +735,12 @@ const loadSessionPaper = async (sessionId) => {
   if (data) {
     submitSessionId.value = targetSessionId
     sessionPaper.value = data
+    suspendDraftDirtyTracking.value = true
     syncDraftsByPaper()
+    await loadSessionAnswers(targetSessionId)
+    suspendDraftDirtyTracking.value = false
+    hasUnsavedChanges.value = false
+    lastSavedAt.value = ''
   }
 }
 
@@ -477,9 +753,15 @@ const startExam = async (examId) => {
   const data = await run('startExam', () => api.startExam(targetExamId), { successMessage: '考试会话已创建' })
   if (!data) return
 
-  startedSession.value = data
+  startedSession.value = {
+    ...data,
+    examId: data.examId || targetExamId,
+    status: data.status || 'IN_PROGRESS',
+    studentId: getSavedUser()?.id || '',
+  }
   submitSessionId.value = data.sessionId
   submitResult.value = null
+  studentResult.value = null
   await loadSessionPaper(data.sessionId)
   await loadAssignedExams()
 }
@@ -498,7 +780,28 @@ const continueSession = async (exam) => {
     studentId: getSavedUser()?.id || '',
   }
   submitSessionId.value = exam.sessionId
+  submitResult.value = null
+  studentResult.value = null
   await loadSessionPaper(exam.sessionId)
+}
+
+const viewSubmittedSessionResult = async (exam) => {
+  if (!exam?.sessionId) {
+    ElMessage.warning('该考试会话缺失，无法查看成绩')
+    return
+  }
+  startedSession.value = {
+    sessionId: exam.sessionId,
+    examId: exam.examId,
+    status: exam.sessionStatus || 'SUBMITTED',
+    startTime: exam.sessionStartTime || null,
+    deadlineTime: exam.endTime || null,
+    studentId: getSavedUser()?.id || '',
+  }
+  submitSessionId.value = exam.sessionId
+  if (canViewStudentResult.value) {
+    await loadStudentResult(exam.sessionId)
+  }
 }
 
 const startOrContinueExam = async (exam) => {
@@ -508,8 +811,8 @@ const startOrContinueExam = async (exam) => {
     await continueSession(exam)
     return
   }
-  if (sessionStatus === 'SUBMITTED') {
-    ElMessage.warning('该考试已提交，无法再次作答')
+  if (sessionStatus === 'SUBMITTED' || sessionStatus === 'FORCE_SUBMITTED') {
+    await viewSubmittedSessionResult(exam)
     return
   }
   if (!canStartAssignedExam(exam)) {
@@ -528,14 +831,43 @@ const loadLatestSessionPaper = async () => {
   await loadSessionPaper(sessionId)
 }
 
-const saveAnswers = async () => {
+const loadStudentResult = async (sessionId) => {
+  if (!canViewStudentResult.value) {
+    studentResult.value = null
+    return
+  }
+  const targetSessionId = String(sessionId || resolveCurrentSessionId() || '').trim()
+  if (!targetSessionId) {
+    ElMessage.warning('请先开始考试或选择已有会话')
+    return
+  }
+  const data = await run('studentSessionResult', () => api.getStudentSessionResult(targetSessionId), {
+    errorMessage: '成绩解析加载失败，请稍后重试',
+  })
+  if (data !== null) {
+    studentResult.value = normalizeStudentResultPayload(data)
+  }
+}
+
+const saveAnswers = async (options = {}) => {
+  const { silent = false } = options
   const sessionId = String(submitSessionId.value || startedSession.value?.sessionId || '').trim()
   if (!sessionId) {
-    ElMessage.warning('请先从我的考试列表开始考试')
+    if (!silent) {
+      ElMessage.warning('请先从我的考试列表开始考试')
+    }
+    return
+  }
+  if (!isCurrentSessionEditable()) {
+    if (!silent) {
+      ElMessage.warning('当前会话不可编辑，无法保存答案')
+    }
     return
   }
   if (!paperQuestions.value.length) {
-    ElMessage.warning('请先加载会话试卷')
+    if (!silent) {
+      ElMessage.warning('请先加载会话试卷')
+    }
     return
   }
 
@@ -548,7 +880,25 @@ const saveAnswers = async () => {
     }
   })
 
-  await run('saveAnswers', () => api.saveAnswers(sessionId, { answers }), { successMessage: '答案已保存' })
+  if (silent) {
+    autoSaving.value = true
+    try {
+      await api.saveAnswers(sessionId, { answers })
+      hasUnsavedChanges.value = false
+      lastSavedAt.value = new Date().toISOString()
+    } catch (error) {
+      console.warn('auto save failed', error)
+    } finally {
+      autoSaving.value = false
+    }
+    return
+  }
+
+  const data = await run('saveAnswers', () => api.saveAnswers(sessionId, { answers }), { successMessage: '答案已保存' })
+  if (data !== null) {
+    hasUnsavedChanges.value = false
+    lastSavedAt.value = new Date().toISOString()
+  }
 }
 
 const submitSession = async () => {
@@ -569,7 +919,12 @@ const submitSession = async () => {
         status: data.status || 'SUBMITTED',
       }
     }
+    hasUnsavedChanges.value = false
+    lastSavedAt.value = new Date().toISOString()
     await loadAssignedExams()
+    if (canViewStudentResult.value) {
+      await loadStudentResult(sessionId)
+    }
   }
 }
 
@@ -577,7 +932,27 @@ watch(resolveCurrentSessionId, () => {
   Object.keys(antiCheatLastSentAt).forEach((key) => {
     delete antiCheatLastSentAt[key]
   })
+  hasUnsavedChanges.value = false
+  lastSavedAt.value = ''
+  studentResult.value = null
+  if (resolveCurrentSessionId()) {
+    startAutoSave()
+  } else {
+    stopAutoSave()
+  }
 })
+
+watch(
+  answerDrafts,
+  () => {
+    if (suspendDraftDirtyTracking.value) return
+    if (activePage.value !== 'student') return
+    if (!resolveCurrentSessionId()) return
+    if (!isCurrentSessionEditable()) return
+    hasUnsavedChanges.value = true
+  },
+  { deep: true }
+)
 
 watch(activePage, (page) => {
   if (page === 'teacher') {
@@ -594,6 +969,9 @@ watch(activePage, (page) => {
     if (canAccessAssignedExams.value) {
       loadAssignedExams()
     }
+    startAutoSave()
+  } else {
+    stopAutoSave()
   }
 })
 
@@ -628,6 +1006,12 @@ watch(canLoadPublishedExams, (enabled) => {
   }
 })
 
+watch(canViewStudentResult, (enabled) => {
+  if (!enabled) {
+    studentResult.value = null
+  }
+})
+
 onMounted(async () => {
   bindAntiCheatListeners()
   syncPageByCurrentRole()
@@ -643,9 +1027,11 @@ onMounted(async () => {
   if (activePage.value === 'student' && canAccessAssignedExams.value) {
     await loadAssignedExams()
   }
+  startAutoSave()
 })
 
 onUnmounted(() => {
+  stopAutoSave()
   unbindAntiCheatListeners()
 })
 </script>
@@ -850,7 +1236,27 @@ onUnmounted(() => {
               <el-tag :type="judgeStatusType(row.status)">{{ toStatusText(row.status) }}</el-tag>
             </template>
           </el-table-column>
+          <el-table-column label="解析开放" min-width="150">
+            <template #default="{ row }">
+              <el-tag :type="isResultDetailReleasedForExam(row) ? 'success' : 'info'">
+                {{ toResultReleaseText(row) }}
+              </el-tag>
+            </template>
+          </el-table-column>
           <el-table-column prop="targetStudentCount" label="发布人数" width="90" />
+          <el-table-column label="操作" width="120">
+            <template #default="{ row }">
+              <el-button
+                link
+                type="primary"
+                :disabled="!canReleaseResultDetail(row)"
+                :loading="loading[`releaseResultDetail:${row.id}`]"
+                @click="releaseResultDetailForExam(row)"
+              >
+                开放解析
+              </el-button>
+            </template>
+          </el-table-column>
         </el-table>
       </section>
     </template>
@@ -863,6 +1269,14 @@ onUnmounted(() => {
             <p class="block-sub">老师发布给当前学生的考试列表，直接一键开考或继续作答。</p>
           </div>
           <div class="action-row">
+            <el-select v-model="assignedExamStatusFilter" size="small" style="width: 140px">
+              <el-option
+                v-for="item in assignedExamStatusOptions"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
             <el-button :loading="loading.assignedExams" @click="loadAssignedExams">刷新列表</el-button>
             <el-button :loading="loading.sessionPaper" @click="loadLatestSessionPaper">加载当前会话试卷</el-button>
           </div>
@@ -870,8 +1284,8 @@ onUnmounted(() => {
 
         <div class="metrics-grid cols-3">
           <article class="metric-card">
-            <span>已分配考试</span>
-            <strong>{{ assignedExamCount }}</strong>
+            <span>筛选结果 / 总数</span>
+            <strong>{{ assignedExamCount }} / {{ assignedExamTotalCount }}</strong>
           </article>
           <article class="metric-card">
             <span>当前会话</span>
@@ -883,9 +1297,12 @@ onUnmounted(() => {
           </article>
         </div>
 
-        <el-empty v-if="!assignedExams.length" description="暂无已发布考试，请联系老师发布后再进入" />
+        <el-empty
+          v-if="!filteredAssignedExams.length"
+          :description="assignedExams.length ? '当前筛选条件下无考试' : '暂无已发布考试，请联系老师发布后再进入'"
+        />
 
-        <el-table v-else :data="assignedExams" size="small" max-height="320">
+        <el-table v-else :data="filteredAssignedExams" size="small" max-height="320">
           <el-table-column prop="examId" label="考试 ID" min-width="140" />
           <el-table-column prop="title" label="考试标题" min-width="180" show-overflow-tooltip />
           <el-table-column label="时间窗口" min-width="240">
@@ -911,7 +1328,7 @@ onUnmounted(() => {
               <el-button
                 link
                 type="primary"
-                :disabled="!canStartAssignedExam(row) && String(row.sessionStatus || '').toUpperCase() !== 'IN_PROGRESS'"
+                :disabled="!canOperateAssignedExam(row)"
                 :loading="loading.startExam"
                 @click="startOrContinueExam(row)"
               >
@@ -1009,9 +1426,14 @@ onUnmounted(() => {
         </div>
 
         <div class="action-row">
-          <el-button :loading="loading.saveAnswers" @click="saveAnswers">保存答案</el-button>
-          <el-button type="danger" :loading="loading.submit" @click="submitSession">提交试卷</el-button>
+          <el-button :loading="loading.saveAnswers || autoSaving" :disabled="!isCurrentSessionEditable()" @click="saveAnswers">
+            保存答案
+          </el-button>
+          <el-button type="danger" :loading="loading.submit" :disabled="!isCurrentSessionEditable()" @click="submitSession">
+            提交试卷
+          </el-button>
         </div>
+        <p class="hint-text">{{ saveIndicatorText }}</p>
       </section>
 
       <section class="console-block">
@@ -1055,14 +1477,119 @@ onUnmounted(() => {
 
             <el-descriptions v-if="submitResult" :column="2" border size="small">
               <el-descriptions-item label="提交状态">{{ submitResult.status || '-' }}</el-descriptions-item>
-              <el-descriptions-item label="客观题得分">{{ submitResult.objectiveScore ?? '-' }}</el-descriptions-item>
-              <el-descriptions-item label="总分">{{ submitResult.totalScore ?? '-' }}</el-descriptions-item>
+              <el-descriptions-item label="客观题得分">{{ formatScoreDisplay(submitResult.objectiveScore) }}</el-descriptions-item>
+              <el-descriptions-item label="总分">{{ formatScoreDisplay(submitResult.totalScore) }}</el-descriptions-item>
               <el-descriptions-item label="提交时间">
                 {{ formatDateTimeDisplay(submitResult.submittedAt) }}
               </el-descriptions-item>
             </el-descriptions>
           </template>
         </div>
+      </section>
+
+      <section v-if="canViewStudentResult" class="console-block">
+        <div class="block-head">
+          <div>
+            <h3 class="block-title">学生端：成绩与解析</h3>
+            <p class="block-sub">提交后可查看成绩；标准答案与解析在考试结束或老师发布后开放。</p>
+          </div>
+          <div class="action-row">
+            <el-button
+              :disabled="!resolveCurrentSessionId()"
+              :loading="loading.studentSessionResult"
+              @click="loadStudentResult()"
+            >
+              刷新成绩解析
+            </el-button>
+          </div>
+        </div>
+
+        <el-empty
+          v-if="!studentResult"
+          description="暂无成绩解析，提交后可在此查看；若已提交，可点击“刷新成绩解析”"
+        />
+
+        <template v-else-if="!studentResult.ready">
+          <el-alert :title="studentResult.message || '成绩正在评阅中'" type="info" :closable="false" show-icon />
+          <el-descriptions :column="2" border size="small" class="result-waiting">
+            <el-descriptions-item label="会话 ID">{{ studentResult.sessionId || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="任务状态">{{ studentResult.taskStatus || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="提交时间">
+              {{ formatDateTimeDisplay(studentResult.submittedAt) }}
+            </el-descriptions-item>
+            <el-descriptions-item label="客观题得分">
+              {{ formatScoreDisplay(studentResult.summary?.objectiveScore) }}
+            </el-descriptions-item>
+          </el-descriptions>
+        </template>
+
+        <template v-else>
+          <el-alert
+            v-if="studentResult.detailReleased === false"
+            :title="studentResult.detailMessage || '标准答案与解析暂未开放'"
+            type="warning"
+            :closable="false"
+            show-icon
+          />
+
+          <div class="metrics-grid cols-3">
+            <article class="metric-card">
+              <span>客观题得分</span>
+              <strong>{{ formatScoreDisplay(studentResult.summary?.objectiveScore) }}</strong>
+            </article>
+            <article class="metric-card">
+              <span>主观题得分</span>
+              <strong>{{ formatScoreDisplay(studentResult.summary?.subjectiveScore) }}</strong>
+            </article>
+            <article class="metric-card">
+              <span>总分</span>
+              <strong>{{ formatScoreDisplay(studentResult.summary?.totalScore) }}</strong>
+            </article>
+          </div>
+
+          <el-empty
+            v-if="!studentResult.questions || !studentResult.questions.length"
+            description="暂无可展示的题目解析"
+          />
+
+          <div v-else class="answer-sheet">
+            <article
+              v-for="item in studentResult.questions"
+              :key="item.questionId"
+              class="question-card"
+              :class="{ 'question-card--incorrect': item.objective && item.correct === false }"
+            >
+              <header class="question-head">
+                <div class="question-title">
+                  <strong>第 {{ item.orderNo || '-' }} 题</strong>
+                  <el-tag size="small">{{ typeLabelMap[item.type] || item.type }}</el-tag>
+                </div>
+                <span class="question-score">{{ formatScoreDisplay(item.gotScore) }} / {{ formatScoreDisplay(item.maxScore) }} 分</span>
+              </header>
+
+              <p class="question-stem">{{ item.stem || '-' }}</p>
+              <p class="hint-text">我的答案：{{ formatAnswerDisplay(item.myAnswer) }}</p>
+              <p class="hint-text">
+                标准答案：{{
+                  studentResult.detailReleased === false
+                    ? '待开放'
+                    : formatAnswerDisplay(item.standardAnswer)
+                }}
+              </p>
+              <p class="hint-text">
+                解析：{{
+                  studentResult.detailReleased === false
+                    ? '待开放'
+                    : item.analysis || '暂无解析'
+                }}
+              </p>
+            </article>
+          </div>
+        </template>
+      </section>
+
+      <section v-else class="console-block">
+        <el-empty description="当前账号没有成绩解析查看权限" />
       </section>
     </template>
   </div>
@@ -1105,6 +1632,11 @@ onUnmounted(() => {
   padding: 10px;
 }
 
+.question-card--incorrect {
+  border-color: rgba(232, 76, 76, 0.42);
+  background: rgba(255, 245, 245, 0.94);
+}
+
 .question-head {
   display: flex;
   align-items: center;
@@ -1143,5 +1675,9 @@ onUnmounted(() => {
   gap: 8px;
   color: var(--ink-soft);
   font-size: 12px;
+}
+
+.result-waiting {
+  margin-top: 10px;
 }
 </style>

@@ -122,7 +122,8 @@ VALUES
     (92025, 'USER_PROFILE_VIEW', '用户详情读取', 'USER', '按用户ID查询资料', 1),
     (92026, 'USER_LIST_VIEW', '用户列表读取', 'USER', '查询用户列表', 1),
     (92027, 'EXAM_ANTI_CHEAT_EVENT_REPORT', '防作弊事件上报', 'EXAM', '上报考试过程防作弊风险事件', 1),
-    (92028, 'EXAM_ANTI_CHEAT_RISK_VIEW', '防作弊风险查看', 'EXAM', '查看考试会话风险评分与事件明细', 1)
+    (92028, 'EXAM_ANTI_CHEAT_RISK_VIEW', '防作弊风险查看', 'EXAM', '查看考试会话风险评分与事件明细', 1),
+    (92029, 'STUDENT_RESULT_VIEW', '学生成绩解析查看', 'GRADING', '查看本人考试成绩与解析', 1)
 ON DUPLICATE KEY UPDATE
     permission_name = VALUES(permission_name),
     module_key = VALUES(module_key),
@@ -177,6 +178,7 @@ VALUES
     ('STUDENT', 'EXAM_ANSWER_SAVE'),
     ('STUDENT', 'EXAM_SESSION_SUBMIT'),
     ('STUDENT', 'EXAM_ANTI_CHEAT_EVENT_REPORT'),
+    ('STUDENT', 'STUDENT_RESULT_VIEW'),
     ('STUDENT', 'USER_SELF_VIEW');
 
 INSERT INTO sys_config (config_key, config_value, group_key, description, updated_by)
@@ -333,6 +335,14 @@ CREATE TABLE IF NOT EXISTS g_question_score (
     comment TEXT,
     is_objective TINYINT NOT NULL DEFAULT 1,
     INDEX idx_g_question_score_task_id(task_id)
+);
+
+CREATE TABLE IF NOT EXISTS g_result_release (
+    exam_id BIGINT PRIMARY KEY,
+    released TINYINT NOT NULL DEFAULT 0,
+    released_by BIGINT NULL,
+    released_at DATETIME NULL,
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 USE analysis_db;

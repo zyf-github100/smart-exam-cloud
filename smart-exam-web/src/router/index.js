@@ -20,6 +20,7 @@ if (!questionModule) {
 }
 
 const lazyPages = {
+  login: () => import('../components/auth/LoginWindow.vue'),
   connection: () => import('../components/console/ConnectionPanel.vue'),
   questions: () => import('../components/console/QuestionTab.vue'),
   'questions-create': () => import('../components/console/question/QuestionCreatePage.vue'),
@@ -51,7 +52,13 @@ const resolveQuestionHomePath = (user) => {
 }
 
 const routes = [
-  { path: '/', redirect: consoleModules[0].path },
+  { path: '/', redirect: () => getDefaultAccessiblePath(getSavedUser()) },
+  {
+    path: '/login',
+    name: 'login',
+    component: resolveLazyPage('login'),
+    meta: { public: true },
+  },
   ...normalModules.map((module) => ({
     path: module.path,
     name: module.name,
@@ -122,7 +129,7 @@ const routes = [
       { path: 'risks', name: 'admin-risks', component: resolveLazyPage('admin-risks'), meta: { moduleName: adminModule.name } },
     ],
   },
-  { path: '/:pathMatch(.*)*', redirect: consoleModules[0].path },
+  { path: '/:pathMatch(.*)*', redirect: '/' },
 ]
 
 const router = createRouter({
@@ -133,6 +140,20 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const user = getSavedUser()
+  if (to.path === '/login') {
+    if (user) {
+      return { path: getDefaultAccessiblePath(user), replace: true }
+    }
+    return true
+  }
+  if (!user) {
+    const redirect = String(to.fullPath || '').trim()
+    return {
+      path: '/login',
+      query: redirect && redirect !== '/login' ? { redirect } : undefined,
+      replace: true,
+    }
+  }
   if (!canAccessRouteMeta(user, to.meta)) {
     if (String(to.path || '').startsWith('/questions/')) {
       const questionPath = resolveQuestionHomePath(user)

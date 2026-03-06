@@ -1,13 +1,13 @@
 ﻿<script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useRouter } from 'vue-router'
 import {
   AUTH_CHANGED_EVENT,
   getApiBase,
   setApiBase,
   api,
   getToken,
-  setToken,
   clearAuth,
   getSavedUser,
   setSavedUser,
@@ -16,15 +16,11 @@ import { hasAnyPermission } from '../../composables/accessControl'
 import { prettyJson, useAsyncAction } from '../../composables/useAsyncAction'
 
 const { loading, run } = useAsyncAction()
+const router = useRouter()
 
 const apiBaseInput = ref(getApiBase())
 const currentApiBase = ref(getApiBase())
 const debugPanels = ref([])
-
-const authForm = reactive({
-  username: 'teacher1',
-  password: '123456',
-})
 
 const authState = reactive({
   token: getToken(),
@@ -62,8 +58,10 @@ const authTagType = computed(() => (isAuthenticated.value ? 'success' : 'info'))
 const displayUser = computed(() => authState.user?.username || '-')
 const displayRoleCode = computed(() => String(authState.user?.role || '').trim().toUpperCase())
 const displayRole = computed(() => roleLabelMap[displayRoleCode.value] || displayRoleCode.value || '-')
+const isStudentRole = computed(() => displayRoleCode.value === 'STUDENT')
 const envSwitchOverride = String(import.meta.env.VITE_ENABLE_ENV_CONFIG || '').trim().toLowerCase() === 'true'
 const canManageEnvConfig = computed(() => {
+  if (isStudentRole.value) return false
   if (envSwitchOverride) return true
   if (import.meta.env.DEV) return true
   return displayRoleCode.value === 'ADMIN'
@@ -212,20 +210,8 @@ const fetchUsers = async () => {
   userList.value = Array.isArray(data) ? data : []
 }
 
-const login = async () => {
-  const data = await run('login', () => api.login(authForm), { successMessage: '登录成功' })
-  if (!data) return
-
-  authState.token = data.token
-  authState.user = data.user
-  setToken(data.token)
-  setSavedUser(data.user)
-  authVersion.value += 1
-
-  await fetchMe()
-  if (canViewUserDirectory.value) {
-    await fetchUsers()
-  }
+const goLogin = () => {
+  router.push({ path: '/login', query: { redirect: '/connection' } })
 }
 
 const logout = async () => {
@@ -279,7 +265,7 @@ onBeforeUnmount(() => {
 
       <div class="connection-grid">
         <article class="connection-card">
-          <h4>{{ canManageEnvConfig ? '环境连接与登录' : '账号登录' }}</h4>
+          <h4>{{ canManageEnvConfig ? '环境连接与会话' : '会话操作' }}</h4>
           <el-form label-position="top">
             <template v-if="canManageEnvConfig">
               <el-form-item label="API Base">
@@ -297,26 +283,21 @@ onBeforeUnmount(() => {
               </el-form-item>
             </template>
 
-            <div class="form-grid cols-2">
-              <el-form-item label="用户名">
-                <el-input v-model="authForm.username" />
-              </el-form-item>
-              <el-form-item label="密码">
-                <el-input v-model="authForm.password" type="password" show-password />
-              </el-form-item>
-            </div>
-
             <div class="action-row">
-              <el-button type="primary" :loading="loading.login" @click="login">登录</el-button>
-              <el-button :loading="loading.logout" @click="logout">退出</el-button>
-              <el-button :loading="loading.me || loading.users" @click="refreshContext">刷新上下文</el-button>
+              <el-button v-if="!isAuthenticated" type="primary" @click="goLogin">前往登录页</el-button>
+              <template v-else>
+                <el-button :loading="loading.logout" @click="logout">退出</el-button>
+                <el-button :loading="loading.me || loading.users" @click="refreshContext">刷新上下文</el-button>
+              </template>
             </div>
           </el-form>
         </article>
 
         <article class="connection-card session-card">
           <h4>会话状态</h4>
-          <el-empty v-if="!isAuthenticated" description="当前未登录，请先登录账号" :image-size="86" />
+          <el-empty v-if="!isAuthenticated" description="当前未登录，请先登录账号" :image-size="86">
+            <el-button type="primary" @click="goLogin">前往登录页</el-button>
+          </el-empty>
 
           <template v-else>
             <div class="metrics-grid cols-2">

@@ -2,6 +2,7 @@ package com.smart.exam.grading.service;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.TextNode;
@@ -14,17 +15,21 @@ import com.smart.exam.grading.config.RabbitConfig;
 import com.smart.exam.grading.dto.ManualScoreRequest;
 import com.smart.exam.grading.entity.GradingTaskEntity;
 import com.smart.exam.grading.entity.QuestionScoreEntity;
+import com.smart.exam.grading.entity.ResultReleaseEntity;
 import com.smart.exam.grading.mapper.ExamReadMapper;
 import com.smart.exam.grading.mapper.GradingTaskMapper;
 import com.smart.exam.grading.mapper.QuestionReadMapper;
 import com.smart.exam.grading.mapper.QuestionScoreMapper;
+import com.smart.exam.grading.mapper.ResultReleaseMapper;
 import com.smart.exam.grading.model.GradingTask;
 import com.smart.exam.grading.model.GradingTaskStatus;
 import com.smart.exam.grading.model.QuestionScore;
 import com.smart.exam.grading.model.scoring.AnswerSnapshot;
 import com.smart.exam.grading.model.scoring.ExamSnapshot;
+import com.smart.exam.grading.model.scoring.PaperQuestionDetailSnapshot;
 import com.smart.exam.grading.model.scoring.PaperQuestionSnapshot;
 import com.smart.exam.grading.model.scoring.QuestionSnapshot;
+import com.smart.exam.grading.model.scoring.SessionSnapshot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.connection.CorrelationData;
@@ -72,6 +77,7 @@ public class GradingDomainService {
     private final QuestionScoreMapper questionScoreMapper;
     private final ExamReadMapper examReadMapper;
     private final QuestionReadMapper questionReadMapper;
+    private final ResultReleaseMapper resultReleaseMapper;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
@@ -81,6 +87,7 @@ public class GradingDomainService {
                                 QuestionScoreMapper questionScoreMapper,
                                 ExamReadMapper examReadMapper,
                                 QuestionReadMapper questionReadMapper,
+                                ResultReleaseMapper resultReleaseMapper,
                                 StringRedisTemplate redisTemplate,
                                 ObjectMapper objectMapper) {
         this.idGenerator = idGenerator;
@@ -89,6 +96,7 @@ public class GradingDomainService {
         this.questionScoreMapper = questionScoreMapper;
         this.examReadMapper = examReadMapper;
         this.questionReadMapper = questionReadMapper;
+        this.resultReleaseMapper = resultReleaseMapper;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
     }
@@ -273,6 +281,176 @@ public class GradingDomainService {
         List<QuestionScoreEntity> scoreEntities = loadTaskQuestionScores(taskLongId);
         publishScore(taskEntity, scoreEntities);
         return toTask(taskEntity, scoreEntities);
+    }
+
+    @Transactional
+    public Map<String, Object> updateExamResultRelease(String examId, boolean released, String operatorId, String role) {
+        long examLongId = parseLong("examId", examId);
+        ExamSnapshot examSnapshot = examReadMapper.selectExamById(examLongId);
+        if (examSnapshot == null) {
+            throw new BizException(ErrorCode.NOT_FOUND, "Exam not found");
+        }
+
+        ensureExamAccessible(examLongId, operatorId, role);
+
+        ResultReleaseEntity entity = resultReleaseMapper.selectById(examLongId);
+        boolean existed = entity != null;
+        if (entity == null) {
+            entity = new ResultReleaseEntity();
+            entity.setExamId(examLongId);
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        entity.setReleased(released ? 1 : 0);
+        entity.setReleasedBy(parseLong("operatorId", operatorId));
+        entity.setReleasedAt(released ? now : null);
+        entity.setUpdatedAt(now);
+
+        if (existed) {
+            resultReleaseMapper.updateById(entity);
+        } else {
+            resultReleaseMapper.insert(entity);
+        }
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("examId", examId);
+        payload.put("released", released);
+        payload.put("releasedAt", entity.getReleasedAt());
+        payload.put("releasedBy", entity.getReleasedBy() == null ? null : String.valueOf(entity.getReleasedBy()));
+        payload.put("effective", released || hasExamEnded(examSnapshot));
+        return payload;
+    }
+
+    public Map<String, Object> getExamResultRelease(String examId, String operatorId, String role) {
+        long examLongId = parseLong("examId", examId);
+        ExamSnapshot examSnapshot = examReadMapper.selectExamById(examLongId);
+        if (examSnapshot == null) {
+            throw new BizException(ErrorCode.NOT_FOUND, "Exam not found");
+        }
+
+        ensureExamAccessible(examLongId, operatorId, role);
+        ResultReleaseEntity entity = resultReleaseMapper.selectById(examLongId);
+
+        boolean released = entity != null && entity.getReleased() != null && entity.getReleased() == 1;
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("examId", examId);
+        payload.put("released", released);
+        payload.put("releasedAt", entity == null ? null : entity.getReleasedAt());
+        payload.put("releasedBy", entity == null || entity.getReleasedBy() == null
+                ? null
+                : String.valueOf(entity.getReleasedBy()));
+        payload.put("effective", released || hasExamEnded(examSnapshot));
+        return payload;
+    }
+
+    public Map<String, Object> getStudentSessionResult(String sessionId, String operatorId, String role) {
+        long sessionLongId = parseLong("sessionId", sessionId);
+        SessionSnapshot session = examReadMapper.selectSessionById(sessionLongId);
+        if (session == null) {
+            throw new BizException(ErrorCode.NOT_FOUND, "Exam session not found");
+        }
+
+        if (!isAdminRole(role)) {
+            long studentId = parseLong("studentId", operatorId);
+            if (session.getUserId() == null || !session.getUserId().equals(studentId)) {
+                throw new BizException(ErrorCode.FORBIDDEN, "Session does not belong to current student");
+            }
+        }
+
+        String normalizedSessionStatus = normalizeToken(session.getStatus());
+        if (!"SUBMITTED".equals(normalizedSessionStatus) && !"FORCE_SUBMITTED".equals(normalizedSessionStatus)) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "Exam session has not been submitted");
+        }
+
+        ExamSnapshot examSnapshot = examReadMapper.selectExamById(session.getExamId());
+        if (examSnapshot == null) {
+            throw new BizException(ErrorCode.NOT_FOUND, "Exam not found");
+        }
+
+        GradingTaskEntity taskEntity = gradingTaskMapper.selectOne(
+                Wrappers.lambdaQuery(GradingTaskEntity.class)
+                        .eq(GradingTaskEntity::getSessionId, sessionLongId)
+                        .last("limit 1")
+        );
+
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("sessionId", sessionId);
+        payload.put("examId", String.valueOf(session.getExamId()));
+        payload.put("sessionStatus", session.getStatus());
+        payload.put("submittedAt", session.getSubmitTime());
+        boolean detailReleased = isResultDetailReleasedForStudent(examSnapshot);
+        payload.put("detailReleased", detailReleased);
+        payload.put("detailMessage", detailReleased ? null : "标准答案与解析将在考试结束后或老师发布后开放");
+
+        if (taskEntity == null || !isTaskReadyForStudent(taskEntity.getStatus())) {
+            payload.put("ready", false);
+            payload.put("taskStatus", taskEntity == null ? "PENDING" : taskEntity.getStatus());
+            payload.put("message", "成绩正在评阅，主观题完成评分后可查看完整成绩与解析");
+
+            Map<String, Object> summary = new HashMap<>();
+            summary.put("objectiveScore", taskEntity == null ? null : nullableDouble(taskEntity.getObjectiveScore()));
+            summary.put("subjectiveScore", null);
+            summary.put("totalScore", null);
+            summary.put("publishedAt", taskEntity == null ? null : taskEntity.getUpdatedAt());
+            payload.put("summary", summary);
+            payload.put("questions", List.of());
+            return payload;
+        }
+
+        List<QuestionScoreEntity> scoreEntities = loadTaskQuestionScores(taskEntity.getId());
+        Map<Long, QuestionScoreEntity> scoreByQuestionId = new HashMap<>();
+        for (QuestionScoreEntity scoreEntity : scoreEntities) {
+            if (scoreEntity == null || scoreEntity.getQuestionId() == null) {
+                continue;
+            }
+            scoreByQuestionId.put(scoreEntity.getQuestionId(), scoreEntity);
+        }
+
+        Map<Long, Object> answerByQuestionId = readAnswerContentByQuestionId(sessionLongId);
+        List<PaperQuestionDetailSnapshot> questionDetails =
+                questionReadMapper.selectPaperQuestionDetailsByPaperId(examSnapshot.getPaperId());
+
+        List<Map<String, Object>> questionPayload = new ArrayList<>(questionDetails.size());
+        for (PaperQuestionDetailSnapshot question : questionDetails) {
+            if (question == null || question.getQuestionId() == null) {
+                continue;
+            }
+            QuestionScoreEntity scoreEntity = scoreByQuestionId.get(question.getQuestionId());
+            BigDecimal maxScore = scoreEntity == null ? toScore(question.getScore()) : safeScore(scoreEntity.getMaxScore());
+            BigDecimal gotScore = scoreEntity == null ? ZERO_SCORE : safeScore(scoreEntity.getGotScore());
+            boolean objective = scoreEntity == null
+                    ? isObjectiveType(question.getType())
+                    : (scoreEntity.getIsObjective() != null && scoreEntity.getIsObjective() == 1);
+
+            Map<String, Object> questionItem = new HashMap<>();
+            questionItem.put("questionId", String.valueOf(question.getQuestionId()));
+            questionItem.put("orderNo", question.getOrderNo());
+            questionItem.put("type", question.getType());
+            questionItem.put("stem", question.getStem());
+            questionItem.put("analysis", detailReleased ? question.getAnalysis() : null);
+            questionItem.put("options", parseQuestionOptions(question.getOptionsJson()));
+            questionItem.put("standardAnswer", detailReleased
+                    ? parseStandardAnswerForView(question.getType(), question.getAnswer())
+                    : null);
+            questionItem.put("myAnswer", answerByQuestionId.get(question.getQuestionId()));
+            questionItem.put("maxScore", nullableDouble(maxScore));
+            questionItem.put("gotScore", nullableDouble(gotScore));
+            questionItem.put("objective", objective);
+            questionItem.put("correct", objective && maxScore.compareTo(gotScore) == 0);
+            questionPayload.add(questionItem);
+        }
+
+        Map<String, Object> summary = new HashMap<>();
+        summary.put("objectiveScore", nullableDouble(taskEntity.getObjectiveScore()));
+        summary.put("subjectiveScore", nullableDouble(taskEntity.getSubjectiveScore()));
+        summary.put("totalScore", nullableDouble(taskEntity.getTotalScore()));
+        summary.put("publishedAt", taskEntity.getUpdatedAt());
+
+        payload.put("ready", true);
+        payload.put("taskStatus", taskEntity.getStatus());
+        payload.put("summary", summary);
+        payload.put("questions", questionPayload);
+        return payload;
     }
 
     private ObjectiveScoringResult scoreObjectiveQuestions(ExamSubmittedEvent event) {
@@ -480,6 +658,104 @@ public class GradingDomainService {
         return rawValue == null ? "" : rawValue.trim().toUpperCase(Locale.ROOT);
     }
 
+    private boolean isTaskReadyForStudent(String taskStatus) {
+        return GradingTaskStatus.AUTO_DONE.name().equals(taskStatus)
+                || GradingTaskStatus.DONE.name().equals(taskStatus);
+    }
+
+    private boolean isResultDetailReleasedForStudent(ExamSnapshot examSnapshot) {
+        if (examSnapshot == null || examSnapshot.getId() == null) {
+            return false;
+        }
+        return hasExamEnded(examSnapshot) || isTeacherReleased(examSnapshot.getId());
+    }
+
+    private boolean hasExamEnded(ExamSnapshot examSnapshot) {
+        if (examSnapshot == null || examSnapshot.getEndTime() == null) {
+            return false;
+        }
+        return !LocalDateTime.now().isBefore(examSnapshot.getEndTime());
+    }
+
+    private boolean isTeacherReleased(Long examId) {
+        if (examId == null) {
+            return false;
+        }
+        ResultReleaseEntity entity = resultReleaseMapper.selectById(examId);
+        return entity != null && entity.getReleased() != null && entity.getReleased() == 1;
+    }
+
+    private Map<Long, Object> readAnswerContentByQuestionId(long sessionId) {
+        List<AnswerSnapshot> answers = examReadMapper.selectAnswersBySessionId(sessionId);
+        if (answers == null || answers.isEmpty()) {
+            return Map.of();
+        }
+        Map<Long, Object> result = new HashMap<>();
+        for (AnswerSnapshot answer : answers) {
+            if (answer == null || answer.getQuestionId() == null) {
+                continue;
+            }
+            result.put(answer.getQuestionId(), parseAnswerPayload(answer.getAnswerContent()));
+        }
+        return result;
+    }
+
+    private Object parseAnswerPayload(String rawAnswerContent) {
+        if (!StringUtils.hasText(rawAnswerContent)) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(rawAnswerContent, Object.class);
+        } catch (Exception ex) {
+            log.warn("Failed to parse answer payload, fallback raw text");
+            return rawAnswerContent;
+        }
+    }
+
+    private List<Map<String, Object>> parseQuestionOptions(String rawOptionsJson) {
+        if (!StringUtils.hasText(rawOptionsJson)) {
+            return List.of();
+        }
+        try {
+            List<Map<String, Object>> options = objectMapper.readValue(
+                    rawOptionsJson,
+                    new TypeReference<List<Map<String, Object>>>() {
+                    }
+            );
+            return options == null ? List.of() : options;
+        } catch (Exception ex) {
+            log.warn("Failed to parse question options");
+            return List.of();
+        }
+    }
+
+    private Object parseStandardAnswerForView(String questionType, String rawAnswer) {
+        String type = normalizeToken(questionType);
+        if (!StringUtils.hasText(rawAnswer)) {
+            return "";
+        }
+        return switch (type) {
+            case "MULTI" -> splitTokensOrdered(rawAnswer);
+            case "JUDGE" -> parseBooleanValue(rawAnswer);
+            default -> rawAnswer.trim();
+        };
+    }
+
+    private List<String> splitTokensOrdered(String rawValue) {
+        if (!StringUtils.hasText(rawValue)) {
+            return List.of();
+        }
+        String[] parts = rawValue.split("[,\\uFF0C\\s]+");
+        LinkedHashMap<String, String> dedup = new LinkedHashMap<>();
+        for (String part : parts) {
+            String token = normalizeToken(part);
+            if (StringUtils.hasText(token) && !dedup.containsKey(token)) {
+                dedup.put(token, token);
+            }
+        }
+        return new ArrayList<>(dedup.values());
+    }
+
     private void publishScore(GradingTaskEntity taskEntity) {
         publishScore(taskEntity, loadTaskQuestionScores(taskEntity.getId()));
     }
@@ -587,6 +863,20 @@ public class GradingDomainService {
 
     private boolean isAdminRole(String role) {
         return "ADMIN".equalsIgnoreCase(String.valueOf(role).trim());
+    }
+
+    private void ensureExamAccessible(long examId, String operatorId, String role) {
+        if (isAdminRole(role)) {
+            return;
+        }
+        Long examOwnerId = examReadMapper.selectExamOwnerById(examId);
+        if (examOwnerId == null) {
+            throw new BizException(ErrorCode.NOT_FOUND, "Exam not found");
+        }
+        long teacherId = parseLong("operatorId", operatorId);
+        if (!examOwnerId.equals(teacherId)) {
+            throw new BizException(ErrorCode.FORBIDDEN, "Exam does not belong to current teacher");
+        }
     }
 
     private void ensureTaskAccessible(GradingTaskEntity taskEntity, String graderId, String role) {

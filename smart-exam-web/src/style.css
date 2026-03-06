@@ -188,22 +188,50 @@ body::after {
 }
 
 .brand-mark {
+  position: relative;
   width: 58px;
   height: 58px;
-  border-radius: 18px;
-  display: grid;
-  place-items: center;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.78);
-  font-family: 'ZCOOL XiaoWei', 'M PLUS Rounded 1c', serif;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: #376ad2;
-  background: linear-gradient(148deg, rgba(255, 255, 255, 0.96), rgba(225, 241, 255, 0.88));
+  border: 1px solid rgba(235, 245, 255, 0.64);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.08));
+  backdrop-filter: blur(3px);
   box-shadow:
-    0 10px 24px rgba(52, 102, 205, 0.27),
-    inset 0 -2px 0 rgba(161, 201, 245, 0.62);
+    0 8px 22px rgba(40, 78, 142, 0.22),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+.brand-mark-ring {
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.68);
+}
+
+.brand-mark-dot {
+  position: absolute;
+  width: 7px;
+  height: 7px;
+  right: 13px;
+  top: 11px;
+  border-radius: 50%;
+  background: linear-gradient(140deg, #ffd7f0, #ff9fcd);
+  box-shadow: 0 0 10px rgba(255, 181, 223, 0.8);
+}
+
+.brand-mark-text {
+  position: relative;
+  z-index: 1;
+  font-family: 'M PLUS Rounded 1c', 'Noto Sans SC', 'PingFang SC', sans-serif;
+  font-size: 19px;
+  line-height: 1;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: rgba(246, 252, 255, 0.95);
+  text-shadow: 0 2px 8px rgba(54, 99, 168, 0.42);
 }
 
 .brand-copy {
@@ -1021,10 +1049,19 @@ body::after {
   }
 
   .brand-mark {
-    width: 50px;
-    height: 50px;
-    border-radius: 14px;
-    font-size: 20px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .brand-mark-text {
+    font-size: 16px;
+  }
+
+  .brand-mark-dot {
+    width: 6px;
+    height: 6px;
+    right: 10px;
+    top: 8px;
   }
 
   .deck-controls,

@@ -49,7 +49,10 @@ export const canAccessModule = (user, moduleOrName) => {
 
 export const getAccessibleModules = (user = getSavedUser()) => consoleModules.filter((module) => canAccessModule(user, module))
 
-export const getDefaultAccessiblePath = (user = getSavedUser()) => getAccessibleModules(user)[0]?.path || '/connection'
+export const getDefaultAccessiblePath = (user = getSavedUser()) => {
+  if (!user) return '/login'
+  return getAccessibleModules(user)[0]?.path || '/connection'
+}
 
 export const canAccessPath = (path, user = getSavedUser()) => {
   const module = consoleModules.find((item) => path === item.path || path.startsWith(`${item.path}/`))

@@ -109,10 +109,13 @@ docker exec -i smart-exam-mysql mysql -uroot -proot < docs/sql/05_seed_teacher_q
 
 详细步骤见：`docs/nacos/README.md`
 
-其中 `exam-service.yaml` 新增了考试状态自动流转调度参数：
+其中 `exam-service.yaml` 包含考试状态流转与超时自动交卷调度参数：
 
 - `smart-exam.exam.status-sync-initial-delay-ms`
 - `smart-exam.exam.status-sync-interval-ms`
+- `smart-exam.exam.auto-force-submit.initial-delay-ms`
+- `smart-exam.exam.auto-force-submit.interval-ms`
+- `smart-exam.exam.auto-force-submit.batch-size`
 
 ## 7. 本地地址建议
 
@@ -203,8 +206,10 @@ curl http://localhost:9000/api/v1/users/me \
 - 教师负责制定标准答案
 - 题库与试卷按教师隔离：教师仅可查看/组卷自己创建的题目和试卷
 - 学生只能在考试会话内答卷，`SHORT` 题进入人工评分，其它题型自动判分
-- 同一学生同一考试只允许一个会话：进行中可复用，已提交不可再次开考
+- 同一学生同一考试只允许一个会话：进行中可复用，`SUBMITTED/FORCE_SUBMITTED` 不可再次开考
 - 考试结束后禁止继续保存答案；提交时间按结束时间封顶，避免超时获益
+- 学生可通过 `GET /api/v1/sessions/{sessionId}/answers` 拉取历史答案回填
+- 考试结束后若会话仍为 `IN_PROGRESS`，调度会自动转为 `FORCE_SUBMITTED` 并触发判卷
 - 交卷与事件发布保持一致：若 `exam.submitted` 事件投递失败，交卷事务回滚并返回错误
 - 教师仅可查看自己考试的风险、阅卷任务与分析报表（管理员可全量）
 
@@ -215,9 +220,10 @@ curl http://localhost:9000/api/v1/users/me \
 3. 学生调用 `GET /api/v1/exams/students/me` 查看“我的考试”列表（兼容旧路径 `/api/v1/students/me/exams`）。
 4. 学生对已分配考试调用 `POST /api/v1/exams/{examId}/start` 启动/复用会话。
 5. 学生调用 `GET /api/v1/sessions/{sessionId}/paper` 拉取题面（不含标准答案）。
-6. 学生调用 `PUT /api/v1/sessions/{sessionId}/answers` 保存答案并提交。
-7. 阅卷服务中 `SHORT` 题任务状态应为 `MANUAL_REQUIRED`，人工评分后变为 `DONE`。
-8. 教师调用 `GET /api/v1/reports/exams/{examId}/score-sheet` 查看成绩单。
+6. 学生调用 `PUT /api/v1/sessions/{sessionId}/answers` 多次保存答案（继续作答前可调用 `GET /api/v1/sessions/{sessionId}/answers` 回填）。
+7. 学生调用 `POST /api/v1/sessions/{sessionId}/submit` 主动交卷；若超时未交卷，会话会被调度自动转为 `FORCE_SUBMITTED`。
+8. 阅卷服务中 `SHORT` 题任务状态应为 `MANUAL_REQUIRED`，人工评分后变为 `DONE`。
+9. 教师调用 `GET /api/v1/reports/exams/{examId}/score-sheet` 查看成绩单。
 
 增量升级 SQL（已有环境）：
 
@@ -287,6 +293,7 @@ curl http://localhost:9000/api/v1/sessions/<sessionId>/paper \
 
 - `exam-service` 已启用定时调度，按时间窗自动更新状态：`NOT_STARTED -> RUNNING -> FINISHED`。
 - 除定时任务外，读取考试详情时也会做一次状态兜底同步，避免缓存状态滞后。
+- 会话超时托底已启用：考试结束后仍为 `IN_PROGRESS` 的会话会被自动转为 `FORCE_SUBMITTED` 并触发判卷链路。
 
 ### 10.7 管理员中心联调检查
 
@@ -427,6 +434,48 @@ curl "http://localhost:9000/api/v1/reports/exams/<examId>/score-sheet?keyword=st
   -H "Authorization: Bearer <teacher-token>"
 ```
 
+### 10.12 成绩解析开放与学生查分联调检查
+
+当前新增接口：
+
+- 教师/管理员查询开放状态：`GET /api/v1/grading/exams/{examId}/result-release`
+- 教师/管理员更新开放状态：`PUT /api/v1/grading/exams/{examId}/result-release`
+- 学生/管理员查询会话成绩与解析：`GET /api/v1/grading/sessions/{sessionId}/result`
+
+开放规则：
+
+- 考试结束后自动开放标准答案与解析。
+- 考试未结束时，教师可按考试手动提前开放。
+- 学生仅可查看本人的会话结果（管理员可全量查看）。
+
+联调前置条件：
+
+1. 重新执行 `docs/sql/02_core_tables.sql`（包含 `g_result_release` 表与 `STUDENT_RESULT_VIEW` 权限）。
+2. 重启 `auth-service`、`gateway-service`、`exam-service`、`grading-service`。
+3. 重新登录获取新 token（旧 token 不包含新增权限码时会被拒绝）。
+
+建议验证步骤：
+
+1. 学生提交（或等待自动交卷）后，调用 `GET /api/v1/grading/sessions/{sessionId}/result`，确认可读取得分摘要。
+2. 在考试未结束时，确认 `detailReleased=false`，标准答案和解析字段不可见。
+3. 教师调用发布接口后，学生再次查询结果，确认 `detailReleased=true` 且返回标准答案与解析。
+
+示例（教师发布解析）：
+
+```bash
+curl -X PUT http://localhost:9000/api/v1/grading/exams/<examId>/result-release \
+  -H "Authorization: Bearer <teacher-token>" \
+  -H "Content-Type: application/json" \
+  -d "{\"released\":true}"
+```
+
+示例（学生查询成绩解析）：
+
+```bash
+curl http://localhost:9000/api/v1/grading/sessions/<sessionId>/result \
+  -H "Authorization: Bearer <student-token>"
+```
+
 ## 11. 常见问题
 
 ### 11.1 服务启动后连不上 Nacos
@@ -463,6 +512,7 @@ curl "http://localhost:9000/api/v1/reports/exams/<examId>/score-sheet?keyword=st
 - 确认已执行最新 `docs/sql/02_core_tables.sql`，并且 `sys_role_permission` 中存在目标权限码。
 - 如果你通过管理员接口改过角色权限，检查是否把必需权限移除了。
 - 确认请求经过网关（`gateway-service`）转发；权限头 `X-Permissions` 由网关注入。
+- 学生成绩解析接口还需 `STUDENT_RESULT_VIEW`；老师发布解析接口需 `GRADING_TASK_VIEW`。
 
 ### 11.7 学生提交后老师看不到阅卷任务或成绩单
 
@@ -476,6 +526,12 @@ curl "http://localhost:9000/api/v1/reports/exams/<examId>/score-sheet?keyword=st
 - 先确认已设置 `JWT_SECRET`（明文或 Base64，解码后至少 32 字节）。
 - 若提示使用历史默认密钥，请更换为新密钥后重启 `auth-service` 与 `gateway-service`。
 - 若在迁移历史明文密码阶段需要临时兼容，可设置 `ALLOW_LEGACY_PLAIN_PASSWORD=true`，迁移完成后应立即恢复为 `false`。
+
+### 11.9 学生已提交但“成绩解析”仍显示未开放
+
+- 先确认会话是否已完成判卷：`taskStatus` 需为 `AUTO_DONE` 或 `DONE`。
+- 若考试未结束，属于预期行为；可由老师调用 `PUT /api/v1/grading/exams/{examId}/result-release` 提前开放。
+- 若考试已结束仍未开放，检查 `grading-service` 是否正常，及 `g_result_release` 表是否可读写。
 
 ## 12. 常用命令
 

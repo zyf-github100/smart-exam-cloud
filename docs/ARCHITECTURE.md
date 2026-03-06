@@ -101,9 +101,10 @@ flowchart LR
 - 考试定义管理。
 - 发布范围管理（`studentIds` -> `e_exam_target`）。
 - 会话生命周期管理。
-- 作答保存与提交。
+- 作答保存与提交（含会话历史答案读取回填）。
 - 交卷事务一致性控制（提交状态更新 + `exam.submitted` 发布失败回滚）。
 - 考试状态自动流转调度（`NOT_STARTED -> RUNNING -> FINISHED`）。
+- 会话超时自动交卷调度（`IN_PROGRESS -> FORCE_SUBMITTED`）。
 - 防作弊事件采集、会话风险聚合与规则参数配置化（第一批+第二批）。
 - 发布交卷事件（`exam.submitted`）。
 
@@ -113,6 +114,8 @@ flowchart LR
 - 基于标准答案执行客观题自动判分（`SINGLE/MULTI/JUDGE/FILL`）。
 - 当前实现通过 MySQL 跨 schema 只读查询 `exam_db/question_db` 完成判题数据组装。
 - 人工评分流程。
+- 成绩解析开放管理（老师/管理员按考试发布 `result-release`）。
+- 学生成绩与解析查询（按会话返回摘要、题目得分、答案/解析开放态）。
 - 重复/异常任务自愈（已完成任务重发成绩，未完成任务清理后重建）。
 - 发布包含每题得分明细的成绩事件。
 
@@ -160,7 +163,7 @@ flowchart LR
 - `user_db`：`sys_user`
 - `question_db`：`q_question`、`q_paper`、`q_paper_question`
 - `exam_db`：`e_exam`、`e_exam_target`、`e_exam_session`、`e_answer`、`e_session_risk_event`、`e_session_risk_summary`
-- `grading_db`：`g_grading_task`、`g_question_score`
+- `grading_db`：`g_grading_task`、`g_question_score`、`g_result_release`
 - `analysis_db`：`a_score`、`a_session_question_score`
 - `admin_db`：`sys_role`、`sys_permission`、`sys_role_permission`、`sys_audit_log`、`sys_config`
 
@@ -171,6 +174,7 @@ flowchart LR
 - `e_answer(session_id, question_id)` 唯一。
 - `e_session_risk_summary(session_id)` 唯一。
 - `g_grading_task(session_id)` 唯一。
+- `g_result_release(exam_id)` 唯一（主键）。
 - `a_score(session_id)` 唯一。
 - `a_session_question_score(session_id, question_id)` 唯一。
 - `sys_role(role_code)` 唯一。
@@ -253,6 +257,7 @@ Redis 主要用途：
 关键业务配置：
 
 - `smart-exam.exam.status-sync-*`：考试状态自动流转调度参数。
+- `smart-exam.exam.auto-force-submit.*`：会话超时自动交卷调度参数。
 - `smart-exam.exam.anti-cheat.*`：防作弊事件评分、阈值与查询分页参数（Nacos 可配置）。
 
 ## 10. 安全架构
@@ -314,6 +319,7 @@ P1：
 - 考试状态自动调度。[已完成，2026-03-04]
 - 真正题目正确率统计链路。[已完成，2026-03-04]
 - 老师成绩单查询能力（`/reports/exams/{examId}/score-sheet`）。[已完成，2026-03-05]
+- 学生端成绩解析查看与老师按考试发布解析能力（`/grading/exams/{examId}/result-release`、`/grading/sessions/{sessionId}/result`）。[已完成，2026-03-06]
 - 交卷-判卷链路一致性修复（提交失败回滚、判卷任务自愈）。[已完成，2026-03-05]
 - 防作弊数据采集与规则参数化。[部分完成，2026-03-06：事件采集、风险评分聚合与参数配置化已落地，完整防作弊能力仍在演进]
 - 自动判题规则引擎化。[未完成，当前为固定题型规则判分实现]

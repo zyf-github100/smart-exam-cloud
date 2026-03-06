@@ -80,6 +80,7 @@ smart-exam-cloud/
   - `GET /api/v1/exams/students/me`（学生查看我的考试，兼容旧路径 `/api/v1/students/me/exams`）
   - `POST /api/v1/exams/{examId}/start`
   - `GET /api/v1/sessions/{sessionId}/paper`（返回会话试卷题面，不含标准答案）
+  - `GET /api/v1/sessions/{sessionId}/answers`（读取会话历史作答）
   - `PUT /api/v1/sessions/{sessionId}/answers`
   - `POST /api/v1/sessions/{sessionId}/submit`
   - `POST /api/v1/sessions/{sessionId}/anti-cheat/events`（防作弊事件上报，第一批）
@@ -87,8 +88,9 @@ smart-exam-cloud/
   - `GET /api/v1/exams/{examId}/anti-cheat/risks`（按考试查看风险分页）
   - 发布机制：考试创建必须携带 `studentIds`，发布关系落库 `e_exam_target`
   - 答卷校验：仅允许保存当前试卷内题目，且按题型校验答案格式
-  - 会话约束：同一学生同一考试仅允许一个会话；已提交后禁止再次开考
+  - 会话约束：同一学生同一考试仅允许一个会话；已提交/已自动交卷后禁止再次开考
   - 截止约束：考试截止后禁止继续保存答案；提交时间以考试结束时间为上限
+  - 超时托底：考试结束后仍为 `IN_PROGRESS` 的会话会被调度自动转为 `FORCE_SUBMITTED` 并触发判卷
   - 提交一致性：交卷与 `exam.submitted` 事件发布在同事务内，MQ 不可用时提交会失败并回滚
   - 权限约束：教师仅可查看自己创建考试的防作弊风险数据
   - 考试状态自动流转：`NOT_STARTED -> RUNNING -> FINISHED`
@@ -102,7 +104,11 @@ smart-exam-cloud/
   - 按试卷题目明细生成 `g_question_score`，简答题（`SHORT`）固定进入人工评分
   - `GET /api/v1/grading/tasks`
   - `POST /api/v1/grading/tasks/{taskId}/manual-score`
+  - `GET /api/v1/grading/exams/{examId}/result-release`
+  - `PUT /api/v1/grading/exams/{examId}/result-release`
+  - `GET /api/v1/grading/sessions/{sessionId}/result`（学生查看本人会话成绩与解析）
   - 权限约束：教师仅可查询和评分自己创建考试产生的阅卷任务
+  - 成绩解析开放规则：考试结束后自动开放；考试未结束时可由老师手动提前开放
   - 重复/异常恢复：已完成任务会重发成绩事件；检测到不完整任务会清理并重建
   - 发布携带每题得分明细的 `score.published` 事件
   - 已接入接口级细粒度 RBAC（角色 + 权限码）
@@ -239,6 +245,7 @@ curl http://localhost:9000/api/v1/users/me \
 - 网关之外业务服务的接口级 RBAC（除 `admin-service`）。
 - 老师成绩单查询（`/reports/exams/{examId}/score-sheet`）。
 - 交卷-判卷链路一致性修复（提交失败回滚、判卷任务自愈）。
+- 学生端成绩与解析查看、老师按考试开放解析能力（`/grading/**/result*`）。
 
 部分完成：
 

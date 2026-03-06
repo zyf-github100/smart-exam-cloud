@@ -9,6 +9,7 @@ import com.smart.exam.exam.dto.SaveAnswersRequest;
 import com.smart.exam.exam.model.AssignedExam;
 import com.smart.exam.exam.model.Exam;
 import com.smart.exam.exam.model.ExamPaper;
+import com.smart.exam.exam.model.SessionAnswer;
 import com.smart.exam.exam.service.ExamDomainService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -95,6 +96,16 @@ public class ExamController {
             @RequestHeader(value = "X-Permissions", required = false) String permissions) {
         String studentId = requireStudentOrAdmin(userId, role, permissions, PermissionCodes.EXAM_ANSWER_SAVE);
         return ApiResponse.ok(examDomainService.getSessionPaper(sessionId, studentId));
+    }
+
+    @GetMapping("/sessions/{sessionId}/answers")
+    public ApiResponse<List<SessionAnswer>> getSessionAnswers(
+            @PathVariable("sessionId") String sessionId,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestHeader(value = "X-Role", required = false) String role,
+            @RequestHeader(value = "X-Permissions", required = false) String permissions) {
+        String studentId = requireStudentOrAdmin(userId, role, permissions, PermissionCodes.EXAM_ANSWER_SAVE);
+        return ApiResponse.ok(examDomainService.listSessionAnswers(sessionId, studentId));
     }
 
     @PostMapping("/sessions/{sessionId}/submit")
