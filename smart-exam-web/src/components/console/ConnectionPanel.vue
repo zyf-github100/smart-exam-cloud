@@ -5,11 +5,11 @@ import { useRouter } from 'vue-router'
 import {
   AUTH_CHANGED_EVENT,
   getApiBase,
+  getSessionUser,
   setApiBase,
   api,
   getToken,
   clearAuth,
-  getSavedUser,
   setSavedUser,
 } from '../../api/client'
 import { hasAnyPermission } from '../../composables/accessControl'
@@ -24,7 +24,7 @@ const debugPanels = ref([])
 
 const authState = reactive({
   token: getToken(),
-  user: getSavedUser(),
+  user: getSessionUser(),
 })
 
 const meData = ref(null)
@@ -154,7 +154,7 @@ const clearUserFilters = () => {
 
 const canViewUserDirectory = computed(() => {
   authVersion.value
-  return hasAnyPermission(getSavedUser(), ['USER_LIST_VIEW'])
+  return hasAnyPermission(getSessionUser(), ['USER_LIST_VIEW'])
 })
 
 const applyBase = () => {
@@ -237,7 +237,7 @@ const refreshContext = async () => {
 const syncAuthState = () => {
   authVersion.value += 1
   authState.token = getToken()
-  authState.user = getSavedUser()
+  authState.user = getSessionUser()
 }
 
 onMounted(async () => {

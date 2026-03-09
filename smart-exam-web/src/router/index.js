@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { consoleModules } from './consoleModules'
-import { getSavedUser } from '../api/client'
+import { getSessionUser } from '../api/client'
 import {
   canAccessModule,
   canAccessRouteMeta,
@@ -52,7 +52,7 @@ const resolveQuestionHomePath = (user) => {
 }
 
 const routes = [
-  { path: '/', redirect: () => getDefaultAccessiblePath(getSavedUser()) },
+  { path: '/', redirect: () => getDefaultAccessiblePath(getSessionUser()) },
   {
     path: '/login',
     name: 'login',
@@ -88,7 +88,7 @@ const routes = [
       description: questionModule.description,
       tips: questionModule.tips,
     },
-    redirect: () => resolveQuestionHomePath(getSavedUser()),
+    redirect: () => resolveQuestionHomePath(getSessionUser()),
     children: [
       {
         path: 'create',
@@ -139,11 +139,14 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  const user = getSavedUser()
+  const user = getSessionUser()
   if (to.path === '/login') {
     if (user) {
       return { path: getDefaultAccessiblePath(user), replace: true }
     }
+    return true
+  }
+  if (to.meta?.public) {
     return true
   }
   if (!user) {

@@ -1,4 +1,4 @@
-import { getSavedUser } from '../api/client'
+import { getSessionUser } from '../api/client'
 import { consoleModules } from '../router/consoleModules'
 
 const normalizeRole = (role) => String(role || '').trim().toUpperCase()
@@ -47,14 +47,14 @@ export const canAccessModule = (user, moduleOrName) => {
   return canAccessRouteMeta(user, module)
 }
 
-export const getAccessibleModules = (user = getSavedUser()) => consoleModules.filter((module) => canAccessModule(user, module))
+export const getAccessibleModules = (user = getSessionUser()) => consoleModules.filter((module) => canAccessModule(user, module))
 
-export const getDefaultAccessiblePath = (user = getSavedUser()) => {
+export const getDefaultAccessiblePath = (user = getSessionUser()) => {
   if (!user) return '/login'
   return getAccessibleModules(user)[0]?.path || '/connection'
 }
 
-export const canAccessPath = (path, user = getSavedUser()) => {
+export const canAccessPath = (path, user = getSessionUser()) => {
   const module = consoleModules.find((item) => path === item.path || path.startsWith(`${item.path}/`))
   if (!module) return true
   return canAccessModule(user, module)

@@ -60,6 +60,13 @@ export const setApiBase = (baseURL) => {
 
 export const getToken = () => token
 
+export const hasAuthSession = () => Boolean(token && getSavedUser())
+
+export const getSessionUser = () => {
+  if (!token) return null
+  return getSavedUser()
+}
+
 export const setToken = (nextToken) => {
   token = (nextToken || '').trim()
   if (token) {

@@ -3,14 +3,14 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { ArrowLeft, ArrowRight, DataAnalysis, TrendCharts } from '@element-plus/icons-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { consoleModules, recommendedFlow } from './router/consoleModules'
-import { AUTH_CHANGED_EVENT, getSavedUser } from './api/client'
+import { AUTH_CHANGED_EVENT, getSessionUser } from './api/client'
 import { canAccessModule, getDefaultAccessiblePath } from './composables/accessControl'
 
 const route = useRoute()
 const router = useRouter()
 
 const nowText = ref(new Date().toLocaleString())
-const authUser = ref(getSavedUser())
+const authUser = ref(getSessionUser())
 const quickJumpPath = ref('')
 let timer = null
 
@@ -82,11 +82,12 @@ const goNext = () => {
 }
 
 const syncAuthState = () => {
-  authUser.value = getSavedUser()
+  authUser.value = getSessionUser()
 }
 
 const ensureRouteAccess = () => {
   if (!authUser.value) {
+    if (route.meta?.public) return
     goTo('/login')
     return
   }
