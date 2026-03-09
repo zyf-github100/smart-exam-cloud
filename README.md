@@ -54,7 +54,8 @@ smart-exam-cloud/
   - 账号来源：`sys_user`
   - 密码策略：默认仅接受 BCrypt 密码；可通过 `ALLOW_LEGACY_PLAIN_PASSWORD=true` 临时开启历史明文兼容迁移窗口
   - JWT 密钥：必须通过 `JWT_SECRET` 注入（明文或 Base64，解码后至少 32 字节）
-  - 首次登录演示账号会自动补齐：`admin/teacher1/stu1`，密码 `123456`
+  - 默认测试账号统一为：`admin`、`teacher001`、`student001`，密码 `123456`
+  - 若未导入 `docs/sql/04_seed_users_120.sql`，首次登录时认证服务会自动补齐上述账号
 
 - 用户 `user-service`（`user_db` + Redis）
   - `GET /api/v1/users/me`
@@ -169,6 +170,9 @@ docker compose ps nacos
   - `docs/sql/04_seed_users_120.sql`
   - `docs/sql/05_seed_teacher_question_banks_20x200.sql`
 
+`02_core_tables.sql` 默认会初始化 `admin`、`teacher001`、`student001` 三个测试账号。
+执行 `04_seed_users_120.sql` 后，会继续补齐 `teacher001~teacher020` 与 `student001~student100`。
+
 ## 3.4 初始化 Nacos 配置中心
 
 项目已接入 Nacos 服务发现 + 配置中心。服务启动时会加载：
@@ -218,7 +222,7 @@ mvn clean package -DskipTests
 ```bash
 curl -X POST http://localhost:9000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d "{\"username\":\"stu1\",\"password\":\"123456\"}"
+  -d "{\"username\":\"student001\",\"password\":\"123456\"}"
 ```
 
 ## 4.2 带 token 请求
@@ -235,7 +239,7 @@ curl http://localhost:9000/api/v1/users/me \
 - Nacos 用于服务注册发现与统一配置管理。
 - SQL 已包含必要索引与唯一约束（含 `e_exam_target(exam_id,student_id)` 发布去重、`e_exam_session(exam_id,user_id)` 会话唯一、事件落库去重相关约束）。
 
-## 6. 迭代进度（截至 2026-03-06）
+## 6. 迭代进度（截至 2026-03-09）
 
 已完成：
 

@@ -79,7 +79,7 @@ SELECT
             JSON_OBJECT('key', 'D', 'text', 'this.getThread().name()')
         )
     END AS options_json,
-    20001 AS created_by
+    21001 AS created_by
 FROM seq;
 
 INSERT IGNORE INTO q_question (
@@ -157,7 +157,7 @@ SELECT
             JSON_OBJECT('key', 'D', 'text', 'Optional')
         )
     END AS options_json,
-    20001 AS created_by
+    21001 AS created_by
 FROM seq;
 
 INSERT IGNORE INTO q_question (
@@ -224,7 +224,7 @@ SELECT
         ELSE 'true'
     END AS answer,
     JSON_ARRAY() AS options_json,
-    20001 AS created_by
+    21001 AS created_by
 FROM seq;
 
 INSERT IGNORE INTO q_question (
@@ -291,7 +291,7 @@ SELECT
         ELSE 'submit'
     END AS answer,
     JSON_ARRAY() AS options_json,
-    20001 AS created_by
+    21001 AS created_by
 FROM seq;
 
 INSERT IGNORE INTO q_question (
@@ -358,5 +358,5 @@ SELECT
         ELSE 'Prevent NPE by null checks, defensive coding, Optional usage, validation and unit tests.'
     END AS answer,
     JSON_ARRAY() AS options_json,
-    20001 AS created_by
+    21001 AS created_by
 FROM seq;

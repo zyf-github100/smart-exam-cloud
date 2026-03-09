@@ -111,7 +111,7 @@
 - `FR-AUTH-001`：支持用户名密码登录。
 - `FR-AUTH-002`：登录成功返回 token、过期时间、用户摘要信息（含权限码集合）。
 - `FR-AUTH-003`：登录请求支持短窗口防重，避免重复提交。
-- `FR-AUTH-004`：支持演示账号自动补齐（admin/teacher1/stu1）。
+- `FR-AUTH-004`：支持默认测试账号自动补齐（admin/teacher001/student001）。
 - `FR-AUTH-005`：提供注销接口（无状态退出）。
 
 ### 6.3 用户模块（user-service）

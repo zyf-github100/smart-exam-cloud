@@ -51,8 +51,8 @@ public class AuthService {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final Map<String, DemoUser> demoUsers = Map.of(
             "admin", new DemoUser(10001L, "admin", "123456", "ADMIN", "System Admin"),
-            "teacher1", new DemoUser(20001L, "teacher1", "123456", "TEACHER", "Teacher One"),
-            "stu1", new DemoUser(30001L, "stu1", "123456", "STUDENT", "Student One")
+            "teacher001", new DemoUser(21001L, "teacher001", "123456", "TEACHER", "Teacher 001"),
+            "student001", new DemoUser(31001L, "student001", "123456", "STUDENT", "Student 001")
     );
     private final Map<String, List<String>> defaultPermissionsByRole = Map.of(
             "ADMIN", List.of(

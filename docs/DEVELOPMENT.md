@@ -88,6 +88,12 @@ docker exec -i smart-exam-mysql mysql -uroot -proot < docs/sql/05_seed_teacher_q
 `04_seed_users_120.sql` 会补齐 `teacher001~teacher020` 与 `student001~student100`。
 `05_seed_teacher_question_banks_20x200.sql` 会为 20 位教师各生成 200 题独立题库（共 4000 题）。
 
+### 5.3 默认测试账号
+
+- `02_core_tables.sql` 会初始化 `admin`、`teacher001`、`student001`，默认密码均为 `123456`。
+- `04_seed_users_120.sql` 会继续补齐 `teacher001~teacher020` 与 `student001~student100`。
+- 若未导入 `04_seed_users_120.sql`，`auth-service` 首次登录时也会自动补齐 `admin`、`teacher001`、`student001`。
+
 ## 6. 初始化 Nacos 配置
 
 服务会从 Nacos 加载：
@@ -187,7 +193,7 @@ Vite 已配置 `/api` 代理到网关 `9000`。
 ```bash
 curl -X POST http://localhost:9000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d "{\"username\":\"stu1\",\"password\":\"123456\"}"
+  -d "{\"username\":\"student001\",\"password\":\"123456\"}"
 ```
 
 ### 10.2 带 Token 请求
@@ -348,7 +354,7 @@ curl -X PUT http://localhost:9000/api/v1/admin/roles/TEACHER/permissions \
 ```bash
 curl -X POST http://localhost:9000/api/v1/auth/login \
   -H "Content-Type: application/json" \
-  -d "{\"username\":\"teacher1\",\"password\":\"123456\"}"
+  -d "{\"username\":\"teacher001\",\"password\":\"123456\"}"
 
 curl http://localhost:9000/api/v1/questions \
   -H "Authorization: Bearer <teacher-token>"

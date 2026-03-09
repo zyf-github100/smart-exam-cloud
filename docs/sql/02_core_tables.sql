@@ -13,8 +13,8 @@ CREATE TABLE IF NOT EXISTS sys_user (
 INSERT INTO sys_user (id, username, password_hash, real_name, role, status)
 VALUES
     (10001, 'admin', '$2a$10$lLqLKlj9K/MmBkj1BzabmeJqnvSyVROjUC3qgJQMZs3aV4mCdXk3y', 'System Admin', 'ADMIN', 1),
-    (20001, 'teacher1', '$2a$10$B6N2RKDLjePeNGCkciuBGOcDiI3p.4Rdu04.RLyo1RmjjhLxLaHqq', 'Teacher One', 'TEACHER', 1),
-    (30001, 'stu1', '$2a$10$VNjd.1g8TGSdLOxuQkVNwOu.RaPcQQHEZV97tO/rF9pVm8Xuz2KD2', 'Student One', 'STUDENT', 1)
+    (21001, 'teacher001', '$2a$10$B6N2RKDLjePeNGCkciuBGOcDiI3p.4Rdu04.RLyo1RmjjhLxLaHqq', 'Teacher 001', 'TEACHER', 1),
+    (31001, 'student001', '$2a$10$VNjd.1g8TGSdLOxuQkVNwOu.RaPcQQHEZV97tO/rF9pVm8Xuz2KD2', 'Student 001', 'STUDENT', 1)
 ON DUPLICATE KEY UPDATE
     password_hash = VALUES(password_hash),
     real_name = VALUES(real_name),
