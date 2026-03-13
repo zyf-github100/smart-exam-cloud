@@ -3,6 +3,7 @@
 微服务在线考试系统底层代码（Spring Boot + Spring Cloud 风格多模块）。
 
 开发与联调说明请查看：`docs/DEVELOPMENT.md`
+接口文档请查看：`docs/API.md`
 产品需求文档请查看：`docs/PRD.md`
 技术架构文档请查看：`docs/ARCHITECTURE.md`
 
