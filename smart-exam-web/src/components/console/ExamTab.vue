@@ -3,6 +3,12 @@ import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { api, getSavedUser } from '../../api/client'
 import { useAsyncAction } from '../../composables/useAsyncAction'
 import { hasAnyPermission } from '../../composables/accessControl'
+import {
+  getPaperDirectory,
+  getPublishedExamDirectory,
+  getUserDirectory,
+  invalidateReferenceData,
+} from '../../composables/useReferenceData'
 
 const { loading, run } = useAsyncAction()
 
@@ -35,6 +41,7 @@ const autoSaving = ref(false)
 const suspendDraftDirtyTracking = ref(false)
 const studentResult = ref(null)
 const resultReleaseStateMap = reactive({})
+const resultReleaseLoadingMap = reactive({})
 let autoSaveTimer = null
 
 const typeLabelMap = {
@@ -185,22 +192,64 @@ const hasExamEnded = (exam) => {
   return !Number.isNaN(endTime.getTime()) && Date.now() >= endTime.getTime()
 }
 
+const resolveExamId = (examOrId) => String(examOrId?.id || examOrId || '').trim()
+
+const hasLoadedResultReleaseState = (examOrId) => {
+  const examId = resolveExamId(examOrId)
+  return Boolean(examId) && Object.prototype.hasOwnProperty.call(resultReleaseStateMap, examId)
+}
+
+const ensureResultReleaseState = async (exam, options = {}) => {
+  const examId = resolveExamId(exam)
+  if (!examId || !canManageResultRelease.value || hasExamEnded(exam)) return null
+  if (!options.force && hasLoadedResultReleaseState(examId)) {
+    return Boolean(resultReleaseStateMap[examId])
+  }
+  if (resultReleaseLoadingMap[examId]) return null
+
+  resultReleaseLoadingMap[examId] = true
+  try {
+    const detail = await api.getExamResultRelease(examId)
+    const released = Boolean(detail?.released)
+    resultReleaseStateMap[examId] = released
+    return released
+  } catch (error) {
+    console.warn(`result release state load failed, examId=${examId}`, error)
+    ElMessage.error('解析开放状态加载失败，请稍后重试')
+    return null
+  } finally {
+    delete resultReleaseLoadingMap[examId]
+  }
+}
+
 const isResultDetailReleasedForExam = (exam) => {
   if (!exam?.id) return false
   if (hasExamEnded(exam)) return true
-  return Boolean(resultReleaseStateMap[String(exam.id)])
+  return hasLoadedResultReleaseState(exam.id) && Boolean(resultReleaseStateMap[resolveExamId(exam)])
 }
 
 const toResultReleaseText = (exam) => {
   if (hasExamEnded(exam)) return '考试结束自动开放'
   if (isResultDetailReleasedForExam(exam)) return '老师已发布'
+  if (hasLoadedResultReleaseState(exam?.id)) return '未开放'
+  if (canManageResultRelease.value) return '待查询'
   return '未开放'
+}
+
+const getResultReleaseActionText = (exam) =>
+  hasLoadedResultReleaseState(exam?.id) ? '刷新状态' : '查询状态'
+
+const refreshResultReleaseState = async (exam) => {
+  const released = await ensureResultReleaseState(exam, { force: true })
+  if (released === null) return
+  ElMessage.success(released ? '当前考试已开放解析' : '当前考试尚未开放解析')
 }
 
 const canReleaseResultDetail = (exam) => {
   if (!canManageResultRelease.value) return false
   if (!exam?.id) return false
   if (hasExamEnded(exam)) return false
+  if (resultReleaseLoadingMap[resolveExamId(exam)]) return false
   return !isResultDetailReleasedForExam(exam)
 }
 
@@ -565,21 +614,24 @@ const createExam = async () => {
   })
   if (data) {
     createdExam.value = data
-    await loadPublishedExams()
+    invalidateReferenceData('published-exams')
+    await loadPublishedExams({ force: true })
   }
 }
 
-const loadPaperOptions = async (keyword = '') => {
+const loadPaperOptions = async (keyword = '', options = {}) => {
   if (!canLoadPaperDirectory.value) {
     paperOptions.value = []
     return
   }
+  const normalizedKeyword = String(keyword || '').trim()
   const params = {
-    keyword: String(keyword || '').trim() || undefined,
+    keyword: normalizedKeyword || undefined,
     page: 1,
-    size: 50,
+    size: normalizedKeyword ? 50 : 200,
+    force: options.force,
   }
-  const data = await run('listPapers', () => api.listPapers(params))
+  const data = await run('listPapers', () => getPaperDirectory(params))
   if (!data) return
   paperOptions.value = Array.isArray(data.records) ? data.records : []
 }
@@ -589,7 +641,7 @@ const searchPaperOptions = (keyword) => {
 }
 
 const refreshPaperOptions = async () => {
-  await loadPaperOptions('')
+  await loadPaperOptions('', { force: true })
 }
 
 const useCreatedExamId = () => {
@@ -606,12 +658,12 @@ const useCreatedExamId = () => {
   ElMessage.info('考试已创建，请切换学生账号后在“我的考试”中开始作答')
 }
 
-const loadStudentOptions = async () => {
+const loadStudentOptions = async (options = {}) => {
   if (!canLoadStudentDirectory.value) {
     studentOptions.value = []
     return
   }
-  const data = await run('listUsers', () => api.listUsers())
+  const data = await run('listUsers', () => getUserDirectory(options))
   if (!Array.isArray(data)) {
     studentOptions.value = []
     return
@@ -654,42 +706,24 @@ const loadAssignedExams = async () => {
   }
 }
 
-const loadPublishedExams = async () => {
+const loadPublishedExams = async (options = {}) => {
   if (!canLoadPublishedExams.value) {
     publishedExams.value = []
-    Object.keys(resultReleaseStateMap).forEach((key) => {
-      delete resultReleaseStateMap[key]
-    })
     return
   }
-  const data = await run('publishedExams', () => api.listPublishedExams())
+  const data = await run('publishedExams', () => getPublishedExamDirectory(options))
   const exams = Array.isArray(data) ? data : []
   publishedExams.value = exams
-
-  Object.keys(resultReleaseStateMap).forEach((key) => {
-    delete resultReleaseStateMap[key]
-  })
-  if (!canManageResultRelease.value || !exams.length) return
-
-  await Promise.all(
-    exams
-      .map((exam) => String(exam?.id || '').trim())
-      .filter((examId) => examId)
-      .map(async (examId) => {
-        try {
-          const detail = await api.getExamResultRelease(examId)
-          resultReleaseStateMap[examId] = Boolean(detail?.released)
-        } catch (error) {
-          console.warn(`result release state load failed, examId=${examId}`, error)
-        }
-      })
-  )
 }
 
 const releaseResultDetailForExam = async (exam) => {
   const examId = String(exam?.id || '').trim()
   if (!examId) {
     ElMessage.warning('考试 ID 不存在，无法开放解析')
+    return
+  }
+  const released = await ensureResultReleaseState(exam)
+  if (released === null && !hasLoadedResultReleaseState(examId)) {
     return
   }
   if (!canReleaseResultDetail(exam)) {
@@ -1200,7 +1234,7 @@ onUnmounted(() => {
             <p class="block-sub">展示当前老师已发布的考试，便于回查与复核时间窗口。</p>
           </div>
           <div class="action-row">
-            <el-button :loading="loading.publishedExams" @click="loadPublishedExams">刷新列表</el-button>
+            <el-button :loading="loading.publishedExams" @click="loadPublishedExams({ force: true })">刷新列表</el-button>
           </div>
         </div>
 
@@ -1243,8 +1277,17 @@ onUnmounted(() => {
             </template>
           </el-table-column>
           <el-table-column prop="targetStudentCount" label="发布人数" width="90" />
-          <el-table-column label="操作" width="120">
+          <el-table-column label="操作" width="180">
             <template #default="{ row }">
+              <el-button
+                v-if="canManageResultRelease && !hasExamEnded(row)"
+                link
+                type="info"
+                :loading="Boolean(resultReleaseLoadingMap[String(row.id || '')])"
+                @click="refreshResultReleaseState(row)"
+              >
+                {{ getResultReleaseActionText(row) }}
+              </el-button>
               <el-button
                 link
                 type="primary"

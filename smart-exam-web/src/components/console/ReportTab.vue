@@ -6,6 +6,7 @@ import { GridComponent, TooltipComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import { AUTH_CHANGED_EVENT, api, getSavedUser } from '../../api/client'
 import { hasAnyPermission } from '../../composables/accessControl'
+import { getPublishedExamDirectory } from '../../composables/useReferenceData'
 import { useAsyncAction } from '../../composables/useAsyncAction'
 
 echarts.use([BarChart, LineChart, GridComponent, TooltipComponent, CanvasRenderer])
@@ -81,19 +82,19 @@ const buildReportExamOptionLabel = (exam) => {
   return `${title}｜${status}｜${range}`
 }
 
-const loadReportExamOptions = async () => {
+const loadReportExamOptions = async (options = {}) => {
   if (!canLoadReportExams.value) {
     reportExamOptions.value = []
     return
   }
-  const data = await run('reportExams', () => api.listPublishedExams(), {
+  const data = await run('reportExams', () => getPublishedExamDirectory(options), {
     errorMessage: '加载考试列表失败，可在下拉框直接输入考试 ID',
   })
   if (!data) return
-  const options = (Array.isArray(data) ? data : []).filter((item) => resolveExamId(item))
-  reportExamOptions.value = options
-  if (!reportExamId.value && options.length) {
-    reportExamId.value = resolveExamId(options[0])
+  const examOptions = (Array.isArray(data) ? data : []).filter((item) => resolveExamId(item))
+  reportExamOptions.value = examOptions
+  if (!reportExamId.value && examOptions.length) {
+    reportExamId.value = resolveExamId(examOptions[0])
   }
 }
 
@@ -296,7 +297,7 @@ onBeforeUnmount(() => {
             :value="resolveExamId(exam)"
           />
         </el-select>
-        <el-button v-if="canLoadReportExams" :loading="loading.reportExams" @click="loadReportExamOptions">
+        <el-button v-if="canLoadReportExams" :loading="loading.reportExams" @click="loadReportExamOptions({ force: true })">
           刷新考试
         </el-button>
         <el-input-number v-model="reportTop" :min="1" :max="50" />

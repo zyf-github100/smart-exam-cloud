@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { AUTH_CHANGED_EVENT, api, getSavedUser } from '../../api/client'
 import { hasAnyPermission } from '../../composables/accessControl'
+import { getPaperDirectory, getPublishedExamDirectory, getUserDirectory } from '../../composables/useReferenceData'
 import { useAsyncAction } from '../../composables/useAsyncAction'
 
 const { loading, run } = useAsyncAction()
@@ -72,13 +73,13 @@ const buildManualScoreRows = (task) => {
     .filter((item) => item.questionId)
 }
 
-const loadStudentDirectory = async () => {
+const loadStudentDirectory = async (options = {}) => {
   if (!canLoadUserDirectory.value) {
     studentNameById.value = {}
     return
   }
 
-  const data = await run('users', () => api.listUsers(), {
+  const data = await run('users', () => getUserDirectory(options), {
     errorMessage: '加载学生姓名失败',
   })
   if (!data) return
@@ -100,13 +101,13 @@ const loadStudentDirectory = async () => {
   studentNameById.value = nameMap
 }
 
-const loadExamDirectory = async () => {
+const loadExamDirectory = async (options = {}) => {
   if (!canLoadExamDirectory.value) {
     examPaperByExamId.value = {}
     return
   }
 
-  const data = await run('publishedExams', () => api.listPublishedExams(), {
+  const data = await run('publishedExams', () => getPublishedExamDirectory(options), {
     errorMessage: '加载试卷筛选失败',
   })
   if (!data) return
@@ -127,16 +128,17 @@ const loadExamDirectory = async () => {
   ensureSelectedTaskVisible()
 }
 
-const loadPaperDirectory = async () => {
+const loadPaperDirectory = async (options = {}) => {
   if (!canLoadPaperDirectory.value) {
     paperNameById.value = {}
     return
   }
 
   const data = await run('papers', () =>
-    api.listPapers({
+    getPaperDirectory({
       page: 1,
       size: 200,
+      force: options.force,
     }),
   {
     errorMessage: '加载试卷名称失败',
@@ -156,8 +158,8 @@ const loadPaperDirectory = async () => {
 }
 
 const refreshPaperFilters = async () => {
-  await loadExamDirectory()
-  await loadPaperDirectory()
+  await loadExamDirectory({ force: true })
+  await loadPaperDirectory({ force: true })
 }
 
 const resolveStudentName = (task) => {
@@ -440,7 +442,7 @@ onBeforeUnmount(() => {
         >
           刷新试卷
         </el-button>
-        <el-button v-if="canLoadUserDirectory" :loading="loading.users" @click="loadStudentDirectory">
+        <el-button v-if="canLoadUserDirectory" :loading="loading.users" @click="loadStudentDirectory({ force: true })">
           刷新姓名
         </el-button>
       </div>

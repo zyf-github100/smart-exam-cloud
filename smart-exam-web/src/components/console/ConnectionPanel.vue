@@ -12,6 +12,7 @@ import {
   setSavedUser,
 } from '../../api/client'
 import { hasAnyPermission } from '../../composables/accessControl'
+import { getUserDirectory } from '../../composables/useReferenceData'
 import { prettyJson, useAsyncAction } from '../../composables/useAsyncAction'
 
 const { loading, run } = useAsyncAction()
@@ -200,12 +201,12 @@ const fetchMe = async () => {
   setSavedUser(mergedUser)
 }
 
-const fetchUsers = async () => {
+const fetchUsers = async (options = {}) => {
   if (!canViewUserDirectory.value) {
     userList.value = []
     return
   }
-  const data = await run('users', () => api.listUsers())
+  const data = await run('users', () => getUserDirectory(options))
   userList.value = Array.isArray(data) ? data : []
 }
 
@@ -222,14 +223,14 @@ const logout = async () => {
   clearAuth()
 }
 
-const refreshContext = async () => {
+const refreshContext = async (options = {}) => {
   if (!authState.token) {
     ElMessage.warning('请先登录后再刷新上下文')
     return
   }
   await fetchMe()
   if (canViewUserDirectory.value) {
-    await fetchUsers()
+    await fetchUsers(options)
   }
 }
 
@@ -242,7 +243,7 @@ const syncAuthState = () => {
 onMounted(async () => {
   window.addEventListener(AUTH_CHANGED_EVENT, syncAuthState)
   if (authState.token) {
-    await refreshContext()
+    await refreshContext({ force: false })
   }
 })
 
@@ -286,7 +287,9 @@ onBeforeUnmount(() => {
               <el-button v-if="!isAuthenticated" type="primary" @click="goLogin">前往登录页</el-button>
               <template v-else>
                 <el-button :loading="loading.logout" @click="logout">退出</el-button>
-                <el-button :loading="loading.me || loading.users" @click="refreshContext">刷新上下文</el-button>
+                <el-button :loading="loading.me || loading.users" @click="refreshContext({ force: true })">
+                  刷新上下文
+                </el-button>
               </template>
             </div>
           </el-form>

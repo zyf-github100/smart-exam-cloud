@@ -1,5 +1,6 @@
 import { computed, proxyRefs, reactive, ref, watch } from 'vue'
 import { api } from '../api/client'
+import { invalidateReferenceData } from './useReferenceData'
 import { useAsyncAction } from './useAsyncAction'
 
 export const ADMIN_CONSOLE_KEY = Symbol('ADMIN_CONSOLE_KEY')
@@ -184,6 +185,7 @@ export const useAdminConsole = () => {
       '用户状态已更新'
     )
     if (!ok) return
+    invalidateReferenceData('users')
     await Promise.all([loadOverview(), loadUsers()])
   }
 
@@ -203,6 +205,7 @@ export const useAdminConsole = () => {
       '用户角色已更新'
     )
     if (!ok) return
+    invalidateReferenceData('users')
     await loadUsers()
   }
 

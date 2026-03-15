@@ -2,6 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { AUTH_CHANGED_EVENT, api, getSavedUser } from '../../api/client'
 import { hasAnyPermission } from '../../composables/accessControl'
+import { invalidateReferenceData } from '../../composables/useReferenceData'
 import { useAsyncAction } from '../../composables/useAsyncAction'
 
 const { loading, run } = useAsyncAction()
@@ -555,6 +556,7 @@ const createPaper = async () => {
   if (data) {
     paperDetail.value = data
     paperDetailId.value = data.id
+    invalidateReferenceData('papers')
     await loadPaperList()
     activeMode.value = 'query'
   }
