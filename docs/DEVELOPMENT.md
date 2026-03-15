@@ -69,21 +69,24 @@ docker compose ps
 ### 5.1 Windows PowerShell
 
 ```powershell
-Get-Content docs/sql/01_init_databases.sql | docker exec -i smart-exam-mysql mysql -uroot -proot
-Get-Content docs/sql/02_core_tables.sql | docker exec -i smart-exam-mysql mysql -uroot -proot
-Get-Content docs/sql/03_seed_java_questions_100.sql | docker exec -i smart-exam-mysql mysql -uroot -proot
-Get-Content docs/sql/04_seed_users_120.sql | docker exec -i smart-exam-mysql mysql -uroot -proot
-Get-Content docs/sql/05_seed_teacher_question_banks_20x200.sql | docker exec -i smart-exam-mysql mysql -uroot -proot
+cmd /c "docker exec -i smart-exam-mysql mysql --default-character-set=utf8mb4 -uroot -proot < docs\sql\01_init_databases.sql"
+cmd /c "docker exec -i smart-exam-mysql mysql --default-character-set=utf8mb4 -uroot -proot < docs\sql\02_core_tables.sql"
+cmd /c "docker exec -i smart-exam-mysql mysql --default-character-set=utf8mb4 -uroot -proot < docs\sql\03_seed_java_questions_100.sql"
+cmd /c "docker exec -i smart-exam-mysql mysql --default-character-set=utf8mb4 -uroot -proot < docs\sql\04_seed_users_120.sql"
+cmd /c "docker exec -i smart-exam-mysql mysql --default-character-set=utf8mb4 -uroot -proot < docs\sql\05_seed_teacher_question_banks_20x200.sql"
 ```
+
+不要在 Windows PowerShell 里使用 `Get-Content ... | mysql` 管道导入 SQL。
+这会经过 PowerShell 的文本编码转换，中文种子数据可能被写成乱码。
 
 ### 5.2 Linux/macOS
 
 ```bash
-docker exec -i smart-exam-mysql mysql -uroot -proot < docs/sql/01_init_databases.sql
-docker exec -i smart-exam-mysql mysql -uroot -proot < docs/sql/02_core_tables.sql
-docker exec -i smart-exam-mysql mysql -uroot -proot < docs/sql/03_seed_java_questions_100.sql
-docker exec -i smart-exam-mysql mysql -uroot -proot < docs/sql/04_seed_users_120.sql
-docker exec -i smart-exam-mysql mysql -uroot -proot < docs/sql/05_seed_teacher_question_banks_20x200.sql
+docker exec -i smart-exam-mysql mysql --default-character-set=utf8mb4 -uroot -proot < docs/sql/01_init_databases.sql
+docker exec -i smart-exam-mysql mysql --default-character-set=utf8mb4 -uroot -proot < docs/sql/02_core_tables.sql
+docker exec -i smart-exam-mysql mysql --default-character-set=utf8mb4 -uroot -proot < docs/sql/03_seed_java_questions_100.sql
+docker exec -i smart-exam-mysql mysql --default-character-set=utf8mb4 -uroot -proot < docs/sql/04_seed_users_120.sql
+docker exec -i smart-exam-mysql mysql --default-character-set=utf8mb4 -uroot -proot < docs/sql/05_seed_teacher_question_banks_20x200.sql
 ```
 
 `03_seed_java_questions_100.sql` 会向 `question_db.q_question` 追加 100 道 Java 题（`SINGLE/MULTI/JUDGE/FILL/SHORT` 各 20 题）。
@@ -545,24 +548,30 @@ curl http://localhost:9000/api/v1/grading/sessions/<sessionId>/result \
 - 当前 compose 未挂载初始化目录，属于预期行为
 - 按第 5 节手动执行 SQL
 
-### 11.3 网关 404 或路由不到下游服务
+### 11.3 管理后台角色/权限中文显示乱码
+
+- 这是历史 SQL 导入时未显式指定 `utf8mb4` 导致的脏数据，不是前端渲染问题。
+- 按第 5 节相同方式执行 `docs/sql/06_fix_admin_metadata_encoding.sql`。
+- 执行后清理 Redis 键 `admin:roles`、`admin:permissions`，或直接重启 `admin-service`。
+
+### 11.4 网关 404 或路由不到下游服务
 
 - 确认下游服务已注册到 Nacos
 - 确认 Nacos 中已导入 `gateway-service.yaml`
 - 确认访问路径包含 `/api/v1/...`
 
-### 11.4 RabbitMQ 报 PRECONDITION_FAILED（队列参数不一致）
+### 11.5 RabbitMQ 报 PRECONDITION_FAILED（队列参数不一致）
 
 - 通常是你在引入重试/DLQ 前已创建过同名队列（无 DLX 参数）
 - 本地可执行 `docker compose down -v` 清理数据卷后重启中间件
 - 然后按第 5 节重建数据库，再重新启动服务
 
-### 11.5 analysis-service 报表接口报表不存在 `a_session_question_score`
+### 11.6 analysis-service 报表接口报表不存在 `a_session_question_score`
 
 - 说明你使用的是旧数据库结构（未包含新表）
 - 重新执行 `docs/sql/02_core_tables.sql`，或手动创建 `a_session_question_score`
 
-### 11.6 接口返回 `403 Insufficient permission`
+### 11.7 接口返回 `403 Insufficient permission`
 
 - 先确认是否使用了旧 token：重新登录后再试。
 - 确认已执行最新 `docs/sql/02_core_tables.sql`，并且 `sys_role_permission` 中存在目标权限码。
@@ -570,20 +579,20 @@ curl http://localhost:9000/api/v1/grading/sessions/<sessionId>/result \
 - 确认请求经过网关（`gateway-service`）转发；权限头 `X-Permissions` 由网关注入。
 - 学生成绩解析接口还需 `STUDENT_RESULT_VIEW`；老师发布解析接口需 `GRADING_TASK_VIEW`。
 
-### 11.7 学生提交后老师看不到阅卷任务或成绩单
+### 11.8 学生提交后老师看不到阅卷任务或成绩单
 
 - 先检查 `POST /sessions/{sessionId}/submit` 的返回是否成功；若 RabbitMQ 不可用，当前实现会直接返回错误并回滚提交。
 - 再检查 RabbitMQ 三组队列是否有堆积：`exam.submitted.*`、`score.published.*`。
 - 若 `grading-service` 已有同 `sessionId` 的历史脏任务，当前实现会自动识别并重建；仍异常时可清理该会话任务后重放消息。
 - 检查老师是否有 `GRADING_TASK_VIEW`、`REPORT_SCORE_DISTRIBUTION_VIEW` 权限。
 
-### 11.8 服务启动报 `security.jwt.secret` 相关错误
+### 11.9 服务启动报 `security.jwt.secret` 相关错误
 
 - 先确认已设置 `JWT_SECRET`（明文或 Base64，解码后至少 32 字节）。
 - 若提示使用历史默认密钥，请更换为新密钥后重启 `auth-service` 与 `gateway-service`。
 - 若在迁移历史明文密码阶段需要临时兼容，可设置 `ALLOW_LEGACY_PLAIN_PASSWORD=true`，迁移完成后应立即恢复为 `false`。
 
-### 11.9 学生已提交但“成绩解析”仍显示未开放
+### 11.10 学生已提交但“成绩解析”仍显示未开放
 
 - 先确认会话是否已完成判卷：`taskStatus` 需为 `AUTO_DONE` 或 `DONE`。
 - 若考试未结束，属于预期行为；可由老师调用 `PUT /api/v1/grading/exams/{examId}/result-release` 提前开放。

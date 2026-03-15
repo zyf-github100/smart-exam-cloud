@@ -172,6 +172,11 @@ docker compose ps nacos
 
 注意：当前 `docker-compose.yml` 未挂载 `docs/sql` 到 MySQL 初始化目录，需手动执行 SQL。
 
+执行 SQL 时请显式使用 `mysql --default-character-set=utf8mb4`。
+如果你在 Windows PowerShell 中导入，不要使用 `Get-Content ... | mysql` 管道，否则中文种子数据可能被写成乱码；具体命令见 `docs/DEVELOPMENT.md`。
+
+如果管理员后台的角色/权限中文已经出现乱码，可执行 `docs/sql/06_fix_admin_metadata_encoding.sql` 修复现有数据。
+
 - 建议每次 schema 有变更后重跑：
   - `docs/sql/01_init_databases.sql`
   - `docs/sql/02_core_tables.sql`
