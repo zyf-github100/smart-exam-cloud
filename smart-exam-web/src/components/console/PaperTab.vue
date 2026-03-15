@@ -1,6 +1,5 @@
 ﻿<script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
 import { AUTH_CHANGED_EVENT, api, getSavedUser } from '../../api/client'
 import { hasAnyPermission } from '../../composables/accessControl'
 import { useAsyncAction } from '../../composables/useAsyncAction'

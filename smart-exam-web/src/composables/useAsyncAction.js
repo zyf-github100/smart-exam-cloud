@@ -1,5 +1,4 @@
 import { reactive } from 'vue'
-import { ElMessage } from 'element-plus'
 
 export const useAsyncAction = () => {
   const loading = reactive({})
@@ -29,4 +28,3 @@ export const prettyJson = (value) => {
   }
   return JSON.stringify(value, null, 2)
 }
-

@@ -1,10 +1,14 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { ElMessage } from 'element-plus'
-import * as echarts from 'echarts'
+import * as echarts from 'echarts/core'
+import { BarChart, LineChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
 import { AUTH_CHANGED_EVENT, api, getSavedUser } from '../../api/client'
 import { hasAnyPermission } from '../../composables/accessControl'
 import { useAsyncAction } from '../../composables/useAsyncAction'
+
+echarts.use([BarChart, LineChart, GridComponent, TooltipComponent, CanvasRenderer])
 
 const { loading, run } = useAsyncAction()
 

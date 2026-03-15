@@ -1,6 +1,5 @@
 ﻿<script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
-import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import {
   AUTH_CHANGED_EVENT,

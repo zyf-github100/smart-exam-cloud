@@ -1,7 +1,6 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import { api } from '../../../api/client'
 import { prettyJson, useAsyncAction } from '../../../composables/useAsyncAction'
 

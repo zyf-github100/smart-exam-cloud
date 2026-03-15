@@ -1,6 +1,5 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
-import { ElMessage } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import { api, getApiBase, setApiBase, setSavedUser, setToken } from '../../api/client'
 import { getDefaultAccessiblePath } from '../../composables/accessControl'
