@@ -44,10 +44,12 @@ smart-exam-cloud/
 在项目根目录执行：
 
 ```bash
+cp .env.example .env
+cp .env.runtime.example .env.runtime
 docker compose up -d
 ```
 
-当前会启动：
+当前会启动到本机回环地址（默认不对公网暴露）：
 
 - MySQL: `3306`
 - Redis: `6379`
@@ -92,7 +94,7 @@ docker exec -i smart-exam-mysql mysql -uroot -proot < docs/sql/05_seed_teacher_q
 
 - `02_core_tables.sql` 会初始化 `admin`、`teacher001`、`student001`，默认密码均为 `123456`。
 - `04_seed_users_120.sql` 会继续补齐 `teacher001~teacher020` 与 `student001~student100`。
-- 若未导入 `04_seed_users_120.sql`，`auth-service` 首次登录时也会自动补齐 `admin`、`teacher001`、`student001`。
+- 生产默认不会自动补齐演示账号；仅本地开发需要时，可设置 `BOOTSTRAP_DEMO_USERS=true` 临时开启。
 
 ## 6. 初始化 Nacos 配置
 
@@ -125,8 +127,8 @@ docker exec -i smart-exam-mysql mysql -uroot -proot < docs/sql/05_seed_teacher_q
 
 ## 7. 本地地址建议
 
-`application.yml` 和 `docs/nacos/*.yaml` 默认使用 `192.168.242.10`。  
-如果你在本机开发并使用本地 Docker，建议改为 `127.0.0.1` 或 `localhost`。
+`application.yml` 和 `docs/nacos/*.yaml` 默认使用 `127.0.0.1`。  
+如果你在其他机器联调，请通过 `.env.runtime` 或环境变量覆盖，不要把具体服务器地址写回模板文件。
 
 至少要保证这些地址可达：
 
@@ -137,8 +139,31 @@ docker exec -i smart-exam-mysql mysql -uroot -proot < docs/sql/05_seed_teacher_q
 - `JWT_SECRET` -> 必填（至少 32 字节，支持明文或 Base64）
 - `ALLOW_LEGACY_PLAIN_PASSWORD` -> 可选（默认 `false`，仅用于历史明文密码迁移窗口）
 
+### 7.1 本地后端直连服务器中间件
+
+当前线上中间件部署状态是：
+
+- Nacos 已对外开放，可直接访问 `http://36.137.84.162:8848/nacos`
+- MySQL / Redis / RabbitMQ 已开放服务器端口，可直接从本机访问
+
+因此，本地启动后端时推荐这样做：
+
+1. 使用项目根目录的 `.env.runtime`
+   - 其中 `NACOS_SERVER_ADDR` 已指向 `36.137.84.162:8848`
+   - MySQL 走 `36.137.84.162:3306`
+   - Redis 走 `36.137.84.162:6379`
+   - RabbitMQ 走 `36.137.84.162:5672`
+2. Nacos 控制台可直接访问：`http://36.137.84.162:8848/nacos`
+3. RabbitMQ 管理台可直接访问：`http://36.137.84.162:15672`
+
+注意：
+
+- 这意味着 MySQL / Redis / RabbitMQ 将从公网可达，生产上应至少配合安全组白名单或来源 IP 限制
+- 如果后面不想继续暴露公网，可退回到 `scripts/dev/open-server-middlewares-tunnel.*` 的 SSH 隧道方案
+
 密码与密钥安全基线（本地联调建议）：
 
+- `docker-compose.yml` 现在要求从 `.env` 显式读取 MySQL/Redis/RabbitMQ 凭据；未配置时会直接拒绝启动。
 - `JWT_SECRET` 未设置、仍使用历史默认值、或解码后长度不足 32 字节时，`auth-service/gateway-service` 将在启动阶段失败。
 - 管理员重置密码需满足强度要求：8~64 位，且包含大小写字母、数字、特殊字符（不允许空白字符）。
 
@@ -166,10 +191,35 @@ mvn clean package -DskipTests
 分别在不同终端执行，例如：
 
 ```bash
-mvn -pl services/auth-service -am spring-boot:run
+mvn -f services/auth-service/pom.xml -am spring-boot:run
 ```
 
 其他服务将模块路径替换为对应目录即可。
+
+服务现在会优先自动读取以下位置的 `.env.runtime`：
+
+- 当前工作目录
+- 上一级目录
+- 上两级目录
+
+这意味着你在项目根目录执行 `mvn -f services/admin-service/pom.xml -am spring-boot:run`，或者在 IDE 里以服务模块目录作为工作目录直接启动，一般都能自动拿到服务器中间件配置。
+
+如果你要显式走项目脚本，也可以用：
+
+Windows PowerShell:
+
+```powershell
+.\scripts\dev\run-service.ps1 auth-service
+```
+
+Linux/macOS/Git Bash:
+
+```bash
+chmod +x scripts/dev/run-service.sh
+./scripts/dev/run-service.sh auth-service
+```
+
+把 `auth-service` 替换成 `user-service`、`question-service`、`exam-service`、`grading-service`、`analysis-service`、`admin-service`、`gateway-service` 即可。
 
 ## 9. 启动前端
 

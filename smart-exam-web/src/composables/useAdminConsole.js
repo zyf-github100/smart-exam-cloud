@@ -5,6 +5,8 @@ import { useAsyncAction } from './useAsyncAction'
 
 export const ADMIN_CONSOLE_KEY = Symbol('ADMIN_CONSOLE_KEY')
 
+const STRONG_PASSWORD_PATTERN = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])\S{8,64}$/
+
 export const useAdminConsole = () => {
   const { loading, run } = useAsyncAction()
 
@@ -211,8 +213,8 @@ export const useAdminConsole = () => {
       return
     }
     const password = userMutation.newPassword.trim()
-    if (password.length < 6) {
-      ElMessage.warning('新密码至少 6 位')
+    if (!STRONG_PASSWORD_PATTERN.test(password)) {
+      ElMessage.warning('新密码需满足 8~64 位，并包含大小写字母、数字和特殊字符')
       return
     }
     try {
@@ -334,7 +336,7 @@ export const useAdminConsole = () => {
   const loadExamRisks = async () => {
     const examId = normalizeText(riskQuery.examId)
     if (!examId) {
-      ElMessage.warning('请输入考试ID')
+      ElMessage.warning('请输入考试 ID')
       return
     }
 

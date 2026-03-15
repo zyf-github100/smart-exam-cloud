@@ -9,7 +9,7 @@ All services read these from:
 
 - `group`: `DEFAULT_GROUP` (override with `NACOS_GROUP`)
 - `namespace`: default public namespace (override with `NACOS_NAMESPACE`)
-- `server`: `192.168.242.10:8848` (override with `NACOS_SERVER_ADDR`)
+- `server`: `127.0.0.1:8848` (override with `NACOS_SERVER_ADDR`)
 
 > Important for Nacos 2.x:
 > When services run outside the Nacos container network (for example on host IDE),
@@ -18,7 +18,7 @@ All services read these from:
 
 ## 1. Import Data IDs in Nacos UI
 
-Open `http://192.168.242.10:8848/nacos`, then create these Data IDs in `DEFAULT_GROUP` with type `YAML`:
+Open `http://127.0.0.1:8848/nacos`, then create these Data IDs in `DEFAULT_GROUP` with type `YAML`:
 
 - `common.yaml`
 - `gateway-service.yaml`
@@ -41,7 +41,7 @@ Use files from this folder as content templates.
   -NacosAddr "http://127.0.0.1:8848" `
   -Group "DEFAULT_GROUP" `
   -Username "nacos" `
-  -Password "nacos"
+  -Password "<your-nacos-password>"
 ```
 
 If you use namespace, add:
@@ -57,7 +57,7 @@ chmod +x docs/nacos/import-nacos.sh
 NACOS_ADDR="http://127.0.0.1:8848" \
 NACOS_GROUP="DEFAULT_GROUP" \
 NACOS_USERNAME="nacos" \
-NACOS_PASSWORD="nacos" \
+NACOS_PASSWORD="<your-nacos-password>" \
 ./docs/nacos/import-nacos.sh
 ```
 
@@ -66,7 +66,7 @@ If you use namespace, set `NACOS_NAMESPACE=<your-namespace-id>`.
 ## 3. Optional Manual CLI Import
 
 ```bash
-NACOS_ADDR="http://192.168.242.10:8848"
+NACOS_ADDR="http://127.0.0.1:8848"
 GROUP="DEFAULT_GROUP"
 for f in common.yaml gateway-service.yaml auth-service.yaml user-service.yaml question-service.yaml exam-service.yaml grading-service.yaml analysis-service.yaml admin-service.yaml; do
   curl -sS -X POST "${NACOS_ADDR}/nacos/v1/cs/configs" \
@@ -86,7 +86,12 @@ If your Nacos address/account changes, set these before starting services:
 - `NACOS_PASSWORD`
 - `NACOS_GROUP`
 - `NACOS_NAMESPACE`
+- `NACOS_AUTH_ENABLE` / `NACOS_AUTH_TOKEN` / `NACOS_AUTH_IDENTITY_KEY` / `NACOS_AUTH_IDENTITY_VALUE` in `.env`
+- `MYSQL_USERNAME` / `MYSQL_PASSWORD`
+- `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD`
+- `RABBITMQ_HOST` / `RABBITMQ_PORT` / `RABBITMQ_USERNAME` / `RABBITMQ_PASSWORD`
 - `JWT_SECRET` (required, at least 32 bytes; supports plain or Base64)
+- `BOOTSTRAP_DEMO_USERS` (optional, default `false`; only for local bootstrap)
 - `ALLOW_LEGACY_PLAIN_PASSWORD` (optional, default `false`; only for temporary legacy password migration)
 
 JWT secret validation notes:
@@ -94,6 +99,11 @@ JWT secret validation notes:
 - Service startup will fail if `JWT_SECRET` is empty.
 - Service startup will fail if `JWT_SECRET` still uses the historical default demo secret.
 - Service startup will fail if decoded secret length is less than 32 bytes.
+
+Nacos exposure notes:
+
+- If Nacos is published to external networks, keep auth enabled.
+- Do not keep the default `nacos/nacos` password after exposing `8848/9848/9849`.
 
 ## 5. MQ Reliability Config Keys
 

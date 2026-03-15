@@ -1,16 +1,17 @@
 spring:
   datasource:
-    username: root
-    password: root
+    username: ${MYSQL_USERNAME:smart_exam_app}
+    password: ${MYSQL_PASSWORD:}
   data:
     redis:
-      host: 192.168.242.10
-      port: 6379
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
   rabbitmq:
-    host: 192.168.242.10
-    port: 5672
-    username: guest
-    password: guest
+    host: ${RABBITMQ_HOST:127.0.0.1}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:smart_exam_app}
+    password: ${RABBITMQ_PASSWORD:}
     publisher-confirm-type: correlated
     publisher-returns: true
     template:

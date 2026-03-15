@@ -1,5 +1,5 @@
 param(
-    [string]$NacosAddr = "http://192.168.242.10:8848",
+    [string]$NacosAddr = "http://127.0.0.1:8848",
     [string]$Group = "DEFAULT_GROUP",
     [string]$Namespace = "",
     [string]$Username = "",

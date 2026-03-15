@@ -11,8 +11,8 @@ const router = useRouter()
 const { loading, run } = useAsyncAction()
 
 const authForm = reactive({
-  username: 'student001',
-  password: '123456',
+  username: '',
+  password: '',
 })
 
 const apiBaseInput = ref(getApiBase())

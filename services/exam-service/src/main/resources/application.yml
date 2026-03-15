@@ -6,39 +6,43 @@ spring:
     name: exam-service
   config:
     import:
+      - 'optional:file:./.env.runtime[.properties]'
+      - 'optional:file:../.env.runtime[.properties]'
+      - 'optional:file:../../.env.runtime[.properties]'
       - 'optional:nacos:common.yaml?group=${NACOS_GROUP:DEFAULT_GROUP}&refreshEnabled=true'
       - 'optional:nacos:${spring.application.name}.yaml?group=${NACOS_GROUP:DEFAULT_GROUP}&refreshEnabled=true'
   cloud:
     nacos:
       discovery:
-        server-addr: ${NACOS_SERVER_ADDR:192.168.242.10:8848}
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
         username: ${NACOS_USERNAME:nacos}
         password: ${NACOS_PASSWORD:nacos}
         namespace: ${NACOS_NAMESPACE:}
         group: ${NACOS_GROUP:DEFAULT_GROUP}
       config:
-        server-addr: ${NACOS_SERVER_ADDR:192.168.242.10:8848}
+        server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
         username: ${NACOS_USERNAME:nacos}
         password: ${NACOS_PASSWORD:nacos}
         namespace: ${NACOS_NAMESPACE:}
         group: ${NACOS_GROUP:DEFAULT_GROUP}
         file-extension: yaml
   datasource:
-    url: ${MYSQL_URL:jdbc:mysql://192.168.242.10:3306/exam_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
-    username: ${MYSQL_USERNAME:root}
-    password: ${MYSQL_PASSWORD:root}
+    url: ${MYSQL_URL:jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/exam_db?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${MYSQL_USERNAME:smart_exam_app}
+    password: ${MYSQL_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
   data:
     redis:
-      host: ${REDIS_HOST:192.168.242.10}
+      host: ${REDIS_HOST:127.0.0.1}
       port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
       database: ${REDIS_DB_EXAM:4}
       timeout: 2s
   rabbitmq:
-    host: ${RABBITMQ_HOST:192.168.242.10}
+    host: ${RABBITMQ_HOST:127.0.0.1}
     port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME:guest}
-    password: ${RABBITMQ_PASSWORD:guest}
+    username: ${RABBITMQ_USERNAME:smart_exam_app}
+    password: ${RABBITMQ_PASSWORD:}
     publisher-confirm-type: correlated
     publisher-returns: true
     template:

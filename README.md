@@ -55,8 +55,8 @@ smart-exam-cloud/
   - 账号来源：`sys_user`
   - 密码策略：默认仅接受 BCrypt 密码；可通过 `ALLOW_LEGACY_PLAIN_PASSWORD=true` 临时开启历史明文兼容迁移窗口
   - JWT 密钥：必须通过 `JWT_SECRET` 注入（明文或 Base64，解码后至少 32 字节）
-  - 默认测试账号统一为：`admin`、`teacher001`、`student001`，密码 `123456`
-  - 若未导入 `docs/sql/04_seed_users_120.sql`，首次登录时认证服务会自动补齐上述账号
+  - 测试账号依赖 SQL 初始化或种子数据导入；生产默认不会自动补齐演示账号
+  - 仅本地开发需要时，可通过 `BOOTSTRAP_DEMO_USERS=true` 临时开启演示账号补齐能力
 
 - 用户 `user-service`（`user_db` + Redis）
   - `GET /api/v1/users/me`
@@ -148,6 +148,15 @@ smart-exam-cloud/
 
 ## 3.2 启动中间件
 
+先复制环境模板并填入强密码：
+
+```bash
+cp .env.example .env
+cp .env.runtime.example .env.runtime
+```
+
+`.env` 用于 Docker 中间件口令与端口，`.env.runtime` 用于业务服务运行时连接信息。
+
 ```bash
 docker compose up -d
 ```
@@ -185,15 +194,26 @@ docker compose ps nacos
 
 - `docs/nacos/README.md`
 
-默认 Nacos 地址为 `192.168.242.10:8848`，可通过环境变量覆盖：
+默认 Nacos 地址为 `127.0.0.1:8848`，可通过环境变量覆盖：
 
 - `NACOS_SERVER_ADDR`
 - `NACOS_USERNAME`
 - `NACOS_PASSWORD`
 - `NACOS_GROUP`
 - `NACOS_NAMESPACE`
+- `NACOS_AUTH_ENABLE`（`.env`，建议保持 `true`）
+- `NACOS_AUTH_TOKEN`（`.env`，Base64 编码且原始密钥至少 32 字节）
+- `NACOS_AUTH_IDENTITY_KEY` / `NACOS_AUTH_IDENTITY_VALUE`（`.env`，用于 Nacos Server 间身份校验）
+- `NACOS_AUTH_TOKEN_EXPIRE_SECONDS`（`.env`，可选，默认 `18000`）
 - `JWT_SECRET`（必填，至少 32 字节，支持明文或 Base64）
+- `BOOTSTRAP_DEMO_USERS`（可选，默认 `false`；仅建议本地开发临时开启）
 - `ALLOW_LEGACY_PLAIN_PASSWORD`（可选，默认 `false`；仅用于历史明文密码迁移窗口）
+
+如果需要把 Nacos 控制台暴露到外网，务必同时满足：
+
+- 保持 `NACOS_AUTH_ENABLE=true`
+- 不要继续使用默认 `nacos/nacos`
+- 仅放行 `8848/9848/9849` 给受控来源
 
 未设置 `JWT_SECRET` 或使用不合规密钥时，`auth-service/gateway-service` 会在启动阶段直接失败。
 
@@ -202,6 +222,16 @@ docker compose ps nacos
 ```bash
 mvn clean package -DskipTests
 ```
+
+生产部署前建议至少执行一次最小构建校验：
+
+```bash
+npm --prefix smart-exam-web run build
+```
+
+版本化部署与 smoke-check 入口见：
+
+- `scripts/deploy/README.md`
 
 ## 3.6 逐个启动服务
 
@@ -219,6 +249,8 @@ mvn clean package -DskipTests
 ## 4. 快速联调
 
 ## 4.1 登录获取 token
+
+以下示例默认你已执行 `docs/sql/02_core_tables.sql` 或导入了测试种子数据。
 
 ```bash
 curl -X POST http://localhost:9000/api/v1/auth/login \
@@ -256,6 +288,7 @@ curl http://localhost:9000/api/v1/users/me \
 
 - 密码哈希化与密钥安全治理（已支持 BCrypt、默认关闭明文回退并提供迁移开关、JWT 密钥强校验与外置注入；待完成历史账号离线迁移与密钥托管体系化）。
 - 防作弊数据采集与规则引擎（事件采集、风险评分聚合与规则参数配置化已落地；完整防作弊能力仍在演进）。
+- 发布自动化（已补环境模板、部署脚本与基础 smoke-check；待补 CI/CD 流水线托管）。
 
 未完成：
 

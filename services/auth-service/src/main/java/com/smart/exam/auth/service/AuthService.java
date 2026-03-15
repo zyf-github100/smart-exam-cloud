@@ -48,6 +48,7 @@ public class AuthService {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
     private final boolean allowLegacyPlainPassword;
+    private final boolean bootstrapDemoUsers;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final Map<String, DemoUser> demoUsers = Map.of(
             "admin", new DemoUser(10001L, "admin", "123456", "ADMIN", "System Admin"),
@@ -116,6 +117,8 @@ public class AuthService {
                        RolePermissionReadMapper rolePermissionReadMapper,
                        StringRedisTemplate redisTemplate,
                        ObjectMapper objectMapper,
+                       @Value("${smart-exam.auth.bootstrap-demo-users:false}")
+                       boolean bootstrapDemoUsers,
                        @Value("${smart-exam.auth.security.allow-legacy-plain-password:false}")
                        boolean allowLegacyPlainPassword) {
         this.jwtUtil = jwtUtil;
@@ -123,6 +126,7 @@ public class AuthService {
         this.rolePermissionReadMapper = rolePermissionReadMapper;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
+        this.bootstrapDemoUsers = bootstrapDemoUsers;
         this.allowLegacyPlainPassword = allowLegacyPlainPassword;
     }
 
@@ -147,29 +151,35 @@ public class AuthService {
             throw new BizException(ErrorCode.FORBIDDEN, "User is disabled");
         }
         List<String> permissionCodes = loadPermissionCodes(user.getRole());
+        String userId = String.valueOf(user.getId());
+        String username = user.getUsername() == null ? "" : user.getUsername();
+        String role = user.getRole() == null ? "" : user.getRole();
+        Map<String, Object> extraClaims = new HashMap<>();
+        extraClaims.put("username", username);
+        extraClaims.put("permissions", permissionCodes);
 
         String token = jwtUtil.generateToken(
-                String.valueOf(user.getId()),
-                user.getRole(),
-                Map.of(
-                        "username", user.getUsername(),
-                        "permissions", permissionCodes
-                )
+                userId,
+                role,
+                extraClaims
         );
 
         Map<String, Object> payload = new HashMap<>();
         payload.put("token", token);
         payload.put("expiresIn", jwtUtil.getExpirationSeconds());
-        payload.put("user", Map.of(
-                "id", String.valueOf(user.getId()),
-                "username", user.getUsername(),
-                "role", user.getRole(),
-                "permissions", permissionCodes
-        ));
+        Map<String, Object> userPayload = new HashMap<>();
+        userPayload.put("id", userId);
+        userPayload.put("username", username);
+        userPayload.put("role", role);
+        userPayload.put("permissions", permissionCodes);
+        payload.put("user", userPayload);
         return payload;
     }
 
     private SysUserEntity tryCreateDemoUser(LoginRequest request) {
+        if (!bootstrapDemoUsers) {
+            return null;
+        }
         DemoUser demoUser = demoUsers.get(request.getUsername());
         if (demoUser == null || !demoUser.password().equals(request.getPassword())) {
             return null;

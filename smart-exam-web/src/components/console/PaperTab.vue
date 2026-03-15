@@ -415,7 +415,25 @@ const loadQuestionBank = async () => {
     questionBank.value = []
     return
   }
-  const data = await run('listQuestions', () => api.listQuestions())
+  const data = await run('listQuestions', async () => {
+    const pageSize = 100
+    const records = []
+    let page = 1
+    let total = 0
+
+    do {
+      const payload = await api.listQuestions({ page, size: pageSize })
+      const pageRecords = Array.isArray(payload?.records) ? payload.records : []
+      total = Number(payload?.total || 0)
+      records.push(...pageRecords)
+      if (!pageRecords.length || records.length >= total) {
+        break
+      }
+      page += 1
+    } while (page <= 100)
+
+    return records
+  })
   if (data) {
     questionBank.value = Array.isArray(data) ? data : []
     if (pendingSelectionMap.value.size > 0) {

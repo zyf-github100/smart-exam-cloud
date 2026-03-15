@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { api } from '../../../api/client'
 import { useAsyncAction } from '../../../composables/useAsyncAction'
@@ -28,26 +28,12 @@ const filters = reactive({
 const pagination = reactive({
   pageNo: 1,
   pageSize: 10,
+  total: 0,
 })
 
 const questionList = ref([])
 const questionDetail = ref(null)
-
-const normalizedKeyword = computed(() => filters.keyword.trim().toLowerCase())
-const filteredQuestions = computed(() =>
-  questionList.value.filter((item) => {
-    const typeMatched = !filters.type || item.type === filters.type
-    if (!typeMatched) return false
-    if (!normalizedKeyword.value) return true
-    const content = `${item.id || ''} ${item.stem || ''} ${item.knowledgePoint || ''}`.toLowerCase()
-    return content.includes(normalizedKeyword.value)
-  })
-)
-
-const pagedQuestions = computed(() => {
-  const start = (pagination.pageNo - 1) * pagination.pageSize
-  return filteredQuestions.value.slice(start, start + pagination.pageSize)
-})
+let listTimer = null
 
 const detailTypeLabel = computed(() =>
   questionDetail.value ? renderQuestionTypeLabel(questionDetail.value.type) : '-'
@@ -78,6 +64,12 @@ watch(
   () => [filters.keyword, filters.type],
   () => {
     pagination.pageNo = 1
+    if (listTimer) {
+      clearTimeout(listTimer)
+    }
+    listTimer = window.setTimeout(() => {
+      listQuestions()
+    }, 250)
   }
 )
 
@@ -91,10 +83,25 @@ const formatDateTime = (value) => {
 }
 
 const listQuestions = async () => {
-  const data = await run('list', () => api.listQuestions())
-  if (data) {
-    questionList.value = Array.isArray(data) ? data : []
+  const params = {
+    keyword: filters.keyword.trim() || undefined,
+    type: filters.type || undefined,
+    page: pagination.pageNo,
+    size: pagination.pageSize,
   }
+  const data = await run('list', () => api.listQuestions(params))
+  if (!data) {
+    return
+  }
+  questionList.value = Array.isArray(data.records) ? data.records : []
+  pagination.total = Number(data.total || 0)
+  pagination.pageNo = Number(data.page || pagination.pageNo)
+  pagination.pageSize = Number(data.size || pagination.pageSize)
+}
+
+const refreshList = async () => {
+  pagination.pageNo = 1
+  await listQuestions()
 }
 
 const getQuestionById = async (questionId) => {
@@ -118,6 +125,23 @@ const selectQuestion = async (row) => {
   await getQuestionById(row?.id)
 }
 
+const handlePageChange = async (pageNo) => {
+  pagination.pageNo = pageNo
+  await listQuestions()
+}
+
+const handlePageSizeChange = async (pageSize) => {
+  pagination.pageSize = pageSize
+  pagination.pageNo = 1
+  await listQuestions()
+}
+
+onBeforeUnmount(() => {
+  if (listTimer) {
+    clearTimeout(listTimer)
+  }
+})
+
 onMounted(async () => {
   await listQuestions()
 })
@@ -129,13 +153,13 @@ onMounted(async () => {
       <div class="block-head">
         <div>
           <h3 class="block-title">题目检索</h3>
-          <p class="block-sub">列表独立渲染，支持筛选与分页。</p>
+          <p class="block-sub">列表改为服务端分页，只返回摘要字段，详情单独按 ID 拉取。</p>
         </div>
       </div>
 
       <div class="form-grid cols-3">
-        <el-input v-model="filters.keyword" placeholder="关键词（ID/题干/知识点）" clearable />
-        <el-select v-model="filters.type" placeholder="题型筛选">
+        <el-input v-model="filters.keyword" placeholder="关键词（ID / 题干 / 知识点）" clearable />
+        <el-select v-model="filters.type" placeholder="题型筛选" clearable>
           <el-option
             v-for="item in typeOptions"
             :key="item.value || 'ALL'"
@@ -143,7 +167,7 @@ onMounted(async () => {
             :value="item.value"
           />
         </el-select>
-        <el-input v-model="filters.questionId" placeholder="题目 ID（精准）" clearable>
+        <el-input v-model="filters.questionId" placeholder="题目 ID（精确）" clearable>
           <template #append>
             <el-button :loading="loading.detail" @click="searchById">查询</el-button>
           </template>
@@ -151,11 +175,11 @@ onMounted(async () => {
       </div>
 
       <div class="action-row list-actions">
-        <el-button :loading="loading.list" @click="listQuestions">刷新列表</el-button>
-        <span class="hint-text">共 {{ filteredQuestions.length }} 条，当前第 {{ pagination.pageNo }} 页</span>
+        <el-button :loading="loading.list" @click="refreshList">刷新列表</el-button>
+        <span class="hint-text">共 {{ pagination.total }} 条，当前第 {{ pagination.pageNo }} 页</span>
       </div>
 
-      <el-table :data="pagedQuestions" size="small" max-height="520" @row-click="selectQuestion">
+      <el-table :data="questionList" row-key="id" size="small" max-height="520" @row-click="selectQuestion">
         <el-table-column prop="id" label="ID" min-width="150" />
         <el-table-column prop="type" label="类型" width="90">
           <template #default="{ row }">{{ renderQuestionTypeLabel(row.type) }}</template>
@@ -172,9 +196,9 @@ onMounted(async () => {
         :current-page="pagination.pageNo"
         :page-size="pagination.pageSize"
         :page-sizes="[10, 20, 30, 50]"
-        :total="filteredQuestions.length"
-        @update:current-page="(val) => (pagination.pageNo = val)"
-        @update:page-size="(val) => ((pagination.pageSize = val), (pagination.pageNo = 1))"
+        :total="pagination.total"
+        @current-change="handlePageChange"
+        @size-change="handlePageSizeChange"
       />
     </section>
 
@@ -184,7 +208,7 @@ onMounted(async () => {
           <h3 class="block-title">题目详情</h3>
         </div>
 
-        <el-empty v-if="!questionDetail" description="请从左侧列表选择题目，查看完整详情" />
+        <el-empty v-if="!questionDetail" description="请从左侧列表选择题目，查看完整详情。" />
 
         <div v-else class="detail-card">
           <div class="metrics-grid cols-2">

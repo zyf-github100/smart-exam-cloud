@@ -5,8 +5,8 @@ import { ADMIN_CONSOLE_KEY } from '../../../composables/useAdminConsole'
 const admin = inject(ADMIN_CONSOLE_KEY)
 
 const roleStatusTag = (value) => (Number(value) === 1 ? 'success' : 'info')
-const roleStatusText = (value) => (Number(value) === 1 ? 'ENABLED' : 'DISABLED')
-const systemRoleText = (value) => (Number(value) === 1 ? 'YES' : 'NO')
+const roleStatusText = (value) => (Number(value) === 1 ? '启用' : '停用')
+const systemRoleText = (value) => (Number(value) === 1 ? '是' : '否')
 </script>
 
 <template>
@@ -43,20 +43,20 @@ const systemRoleText = (value) => (Number(value) === 1 ? 'YES' : 'NO')
 
     <template v-if="admin.selectedRoleDetail">
       <el-descriptions :column="2" border size="small" class="role-detail-panel">
-        <el-descriptions-item label="Role Code">{{ admin.selectedRoleDetail.roleCode || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="Role Name">{{ admin.selectedRoleDetail.roleName || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="System Role">
+        <el-descriptions-item label="角色代码">{{ admin.selectedRoleDetail.roleCode || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="角色名称">{{ admin.selectedRoleDetail.roleName || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="系统角色">
           {{ systemRoleText(admin.selectedRoleDetail.isSystem) }}
         </el-descriptions-item>
-        <el-descriptions-item label="Status">
+        <el-descriptions-item label="状态">
           <el-tag :type="roleStatusTag(admin.selectedRoleDetail.status)">
             {{ roleStatusText(admin.selectedRoleDetail.status) }}
           </el-tag>
         </el-descriptions-item>
-        <el-descriptions-item label="Description" :span="2">
+        <el-descriptions-item label="描述" :span="2">
           {{ admin.selectedRoleDetail.description || '-' }}
         </el-descriptions-item>
-        <el-descriptions-item label="Permission Count" :span="2">
+        <el-descriptions-item label="权限数量" :span="2">
           {{ (admin.selectedRoleDetail.permissions || []).length }}
         </el-descriptions-item>
       </el-descriptions>
@@ -67,13 +67,13 @@ const systemRoleText = (value) => (Number(value) === 1 ? 'YES' : 'NO')
         max-height="320"
         class="role-perm-table"
       >
-        <el-table-column prop="permissionCode" label="Permission Code" min-width="180" />
-        <el-table-column prop="permissionName" label="Permission Name" min-width="180" />
-        <el-table-column prop="moduleKey" label="Module" min-width="110" />
-        <el-table-column prop="description" label="Description" min-width="220" show-overflow-tooltip />
+        <el-table-column prop="permissionCode" label="权限代码" min-width="180" />
+        <el-table-column prop="permissionName" label="权限名称" min-width="180" />
+        <el-table-column prop="moduleKey" label="模块" min-width="110" />
+        <el-table-column prop="description" label="描述" min-width="220" show-overflow-tooltip />
       </el-table>
     </template>
-    <el-empty v-else description="Please select a role" />
+    <el-empty v-else description="请先选择角色" />
   </section>
   <section v-else class="console-block">
     <p class="hint-text">管理上下文初始化失败，请返回“管理员总览”后重试。</p>

@@ -10,6 +10,7 @@ target/
 
 # Logs
 logs/
+runtime-logs/
 *.log
 hs_err_pid*
 replay_pid*
@@ -28,3 +29,19 @@ replay_pid*
 Thumbs.db
 *.ctxt
 .mtj.tmp/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Performance test outputs
+perf/**/results/
+
+# Local environment / deployment secrets
+.env
+.env.runtime
+local-tools/servers.local.json
+local-tools/*.tgz
+scripts/deploy/servers.local.json
+scripts/deploy/*.tgz
+docs/middleware-credentials.md

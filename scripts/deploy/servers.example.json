@@ -1,0 +1,14 @@
+{
+  "backend": {
+    "label": "Backend",
+    "host": "36.137.84.162",
+    "username": "root",
+    "password": "replace-with-backend-password"
+  },
+  "frontend": {
+    "label": "Frontend",
+    "host": "8.148.181.9",
+    "username": "root",
+    "password": "replace-with-frontend-password"
+  }
+}

@@ -21,7 +21,7 @@ const handleUserPageChange = (value) => {
     </div>
 
     <div class="form-grid cols-3">
-      <el-input v-model="admin.userQuery.keyword" placeholder="用户名/姓名" />
+      <el-input v-model="admin.userQuery.keyword" placeholder="用户名 / 姓名" />
       <el-select v-model="admin.userQuery.roleCode" clearable placeholder="角色">
         <el-option label="ADMIN" value="ADMIN" />
         <el-option label="TEACHER" value="TEACHER" />
@@ -88,7 +88,7 @@ const handleUserPageChange = (value) => {
             v-model="admin.userMutation.newPassword"
             type="password"
             show-password
-            placeholder="输入新密码（至少 6 位）"
+            placeholder="输入新密码（8~64 位，含大小写字母、数字、特殊字符）"
           />
           <el-button type="danger" :loading="admin.loading.userPassword" @click="admin.resetUserPassword">
             执行重置

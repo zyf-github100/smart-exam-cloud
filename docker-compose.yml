@@ -4,23 +4,29 @@ services:
       - --default-authentication-plugin=mysql_native_password
     container_name: smart-exam-mysql
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
       TZ: Asia/Shanghai
     image: mysql:8.0
     networks:
       - default
     ports:
-      - "3306:3306"
+      - "${MIDDLEWARE_BIND_HOST:-127.0.0.1}:${MYSQL_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
 
   redis:
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --requirepass
+      - ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
     container_name: smart-exam-redis
     image: redis:7
     networks:
       - default
     ports:
-      - "6379:6379"
+      - "${MIDDLEWARE_BIND_HOST:-127.0.0.1}:${REDIS_PORT:-6379}:6379"
     volumes:
       - redis_data:/data
 
@@ -30,11 +36,11 @@ services:
     networks:
       - default
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?Set RABBITMQ_DEFAULT_USER in .env}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?Set RABBITMQ_DEFAULT_PASS in .env}
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "${MIDDLEWARE_BIND_HOST:-127.0.0.1}:${RABBITMQ_AMQP_PORT:-5672}:5672"
+      - "${MIDDLEWARE_BIND_HOST:-127.0.0.1}:${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
 
@@ -46,10 +52,15 @@ services:
     environment:
       MODE: standalone
       PREFER_HOST_MODE: hostname
+      NACOS_AUTH_ENABLE: ${NACOS_AUTH_ENABLE:-true}
+      NACOS_AUTH_TOKEN: ${NACOS_AUTH_TOKEN:?Set NACOS_AUTH_TOKEN in .env}
+      NACOS_AUTH_IDENTITY_KEY: ${NACOS_AUTH_IDENTITY_KEY:?Set NACOS_AUTH_IDENTITY_KEY in .env}
+      NACOS_AUTH_IDENTITY_VALUE: ${NACOS_AUTH_IDENTITY_VALUE:?Set NACOS_AUTH_IDENTITY_VALUE in .env}
+      NACOS_AUTH_TOKEN_EXPIRE_SECONDS: ${NACOS_AUTH_TOKEN_EXPIRE_SECONDS:-18000}
     ports:
-      - "8848:8848"
-      - "9848:9848"
-      - "9849:9849"
+      - "${NACOS_HTTP_PORT:-8848}:8848"
+      - "${NACOS_GRPC_PORT:-9848}:9848"
+      - "${NACOS_RAFT_PORT:-9849}:9849"
     volumes:
       - nacos_data:/home/nacos/data
       - nacos_logs:/home/nacos/logs

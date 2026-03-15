@@ -19,6 +19,7 @@ import com.smart.exam.question.model.Paper;
 import com.smart.exam.question.model.PaperQuestion;
 import com.smart.exam.question.model.Question;
 import com.smart.exam.question.model.QuestionOption;
+import com.smart.exam.question.model.QuestionSummary;
 import com.smart.exam.question.model.QuestionType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,24 +108,40 @@ public class QuestionDomainService {
         return question;
     }
 
-    public Collection<Question> listQuestions(String operatorId, String role) {
+    public Map<String, Object> listQuestions(String operatorId, String role, String keyword, String type, Long page, Long size) {
         String scopeKey = resolveScopeKey(operatorId, role);
-        List<Question> cached = getCachedQuestionList(scopeKey);
+        String normalizedKeyword = trimToNull(keyword);
+        String normalizedType = normalizeQuestionType(type);
+        long safePage = normalizePage(page);
+        long safeSize = normalizeSize(size);
+        String cacheKey = buildQuestionListCacheKey(scopeKey, normalizedKeyword, normalizedType, safePage, safeSize);
+
+        Map<String, Object> cached = getCachedQuestionList(cacheKey);
         if (cached != null) {
             return cached;
         }
 
-        var query = Wrappers.lambdaQuery(QuestionEntity.class);
-        if (!isAdminRole(role)) {
-            query.eq(QuestionEntity::getCreatedBy, parseLongValue("userId", operatorId));
-        }
-        query.orderByDesc(QuestionEntity::getCreatedAt)
-                .orderByDesc(QuestionEntity::getId);
+        Long operatorLongId = isAdminRole(role) ? null : parseLongValue("userId", operatorId);
+        Long total = questionMapper.selectCount(
+                buildQuestionListQuery(operatorLongId, normalizedKeyword, normalizedType, false, 0, 0)
+        );
 
-        List<QuestionEntity> entities = questionMapper.selectList(query);
-        List<Question> questions = entities.stream().map(this::toQuestion).toList();
-        putCache(buildQuestionListCacheKey(scopeKey), questions, QUESTION_LIST_TTL);
-        return questions;
+        List<QuestionSummary> records = List.of();
+        if (total != null && total > 0) {
+            long offset = (safePage - 1) * safeSize;
+            List<QuestionEntity> entities = questionMapper.selectList(
+                    buildQuestionListQuery(operatorLongId, normalizedKeyword, normalizedType, true, offset, safeSize)
+            );
+            records = entities.stream().map(this::toQuestionSummary).toList();
+        }
+
+        Map<String, Object> payload = new LinkedHashMap<>();
+        payload.put("page", safePage);
+        payload.put("size", safeSize);
+        payload.put("total", total == null ? 0L : total);
+        payload.put("records", records);
+        putCache(cacheKey, payload, QUESTION_LIST_TTL);
+        return payload;
     }
 
     public Question findQuestion(String questionId, String operatorId, String role) {
@@ -266,13 +283,19 @@ public class QuestionDomainService {
 
     private void evictQuestionListCache(String operatorId) {
         try {
-            redisTemplate.delete(List.of(
-                    buildQuestionListCacheKey(resolveScopeKey(operatorId, "TEACHER")),
-                    buildQuestionListCacheKey(ADMIN_SCOPE_KEY)
-            ));
+            deleteQuestionListCaches(resolveScopeKey(operatorId, "TEACHER"));
+            deleteQuestionListCaches(ADMIN_SCOPE_KEY);
         } catch (Exception e) {
             log.warn("Failed to evict question list cache", e);
         }
+    }
+
+    private void deleteQuestionListCaches(String scopeKey) {
+        Set<String> keys = redisTemplate.keys(buildQuestionListCachePrefix(scopeKey) + "*");
+        if (keys == null || keys.isEmpty()) {
+            return;
+        }
+        redisTemplate.delete(keys);
     }
 
     private void cacheQuestion(Question question, String operatorId) {
@@ -292,6 +315,16 @@ public class QuestionDomainService {
         question.setCreatedBy(String.valueOf(entity.getCreatedBy()));
         question.setCreatedAt(entity.getCreatedAt());
         question.setOptions(parseQuestionOptions(entity.getOptionsJson()));
+        return question;
+    }
+
+    private QuestionSummary toQuestionSummary(QuestionEntity entity) {
+        QuestionSummary question = new QuestionSummary();
+        question.setId(String.valueOf(entity.getId()));
+        question.setType(QuestionType.valueOf(entity.getType()));
+        question.setStem(entity.getStem());
+        question.setDifficulty(entity.getDifficulty());
+        question.setKnowledgePoint(entity.getKnowledgePoint());
         return question;
     }
 
@@ -442,6 +475,39 @@ public class QuestionDomainService {
         return query;
     }
 
+    private com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<QuestionEntity> buildQuestionListQuery(
+            Long operatorLongId,
+            String keyword,
+            String type,
+            boolean withSortAndLimit,
+            long offset,
+            long size) {
+        var query = Wrappers.lambdaQuery(QuestionEntity.class);
+        if (operatorLongId != null) {
+            query.eq(QuestionEntity::getCreatedBy, operatorLongId);
+        }
+        if (StringUtils.hasText(type)) {
+            query.eq(QuestionEntity::getType, type);
+        }
+        if (StringUtils.hasText(keyword)) {
+            Long keywordId = tryParseLong(keyword);
+            query.and(wrapper -> {
+                wrapper.like(QuestionEntity::getStem, keyword)
+                        .or()
+                        .like(QuestionEntity::getKnowledgePoint, keyword);
+                if (keywordId != null) {
+                    wrapper.or().eq(QuestionEntity::getId, keywordId);
+                }
+            });
+        }
+        if (withSortAndLimit) {
+            query.orderByDesc(QuestionEntity::getCreatedAt)
+                    .orderByDesc(QuestionEntity::getId)
+                    .last("limit " + offset + "," + size);
+        }
+        return query;
+    }
+
     private Map<String, Object> toPaperSummary(PaperEntity entity) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("id", entity.getId() == null ? null : String.valueOf(entity.getId()));
@@ -550,13 +616,13 @@ public class QuestionDomainService {
         }
     }
 
-    private List<Question> getCachedQuestionList(String scopeKey) {
+    private Map<String, Object> getCachedQuestionList(String cacheKey) {
         try {
-            String cachedJson = redisTemplate.opsForValue().get(buildQuestionListCacheKey(scopeKey));
+            String cachedJson = redisTemplate.opsForValue().get(cacheKey);
             if (!StringUtils.hasText(cachedJson)) {
                 return null;
             }
-            return objectMapper.readValue(cachedJson, new TypeReference<List<Question>>() {
+            return objectMapper.readValue(cachedJson, new TypeReference<Map<String, Object>>() {
             });
         } catch (Exception e) {
             log.warn("Failed to read question list cache", e);
@@ -612,6 +678,26 @@ public class QuestionDomainService {
         return Math.min(size, MAX_PAGE_SIZE);
     }
 
+    private String normalizeQuestionType(String type) {
+        String normalizedType = trimToNull(type);
+        if (!StringUtils.hasText(normalizedType)) {
+            return null;
+        }
+        try {
+            return QuestionType.valueOf(normalizedType.toUpperCase(Locale.ROOT)).name();
+        } catch (IllegalArgumentException e) {
+            throw new BizException(ErrorCode.BAD_REQUEST, "Unsupported question type: " + type);
+        }
+    }
+
+    private Long tryParseLong(String rawValue) {
+        try {
+            return Long.parseLong(rawValue);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     private void ensureResourceOwner(Long ownerId, String operatorId, String role, String message) {
         if (isAdminRole(role)) {
             return;
@@ -630,8 +716,19 @@ public class QuestionDomainService {
         return isAdminRole(role) ? ADMIN_SCOPE_KEY : parseLongValue("userId", operatorId) + "";
     }
 
-    private String buildQuestionListCacheKey(String scopeKey) {
-        return QUESTION_LIST_PREFIX + scopeKey;
+    private String buildQuestionListCacheKey(String scopeKey, String keyword, String type, long page, long size) {
+        String cachePayload = String.join("|",
+                scopeKey,
+                keyword == null ? "" : keyword,
+                type == null ? "" : type,
+                String.valueOf(page),
+                String.valueOf(size)
+        );
+        return buildQuestionListCachePrefix(scopeKey) + sha256Hex(cachePayload);
+    }
+
+    private String buildQuestionListCachePrefix(String scopeKey) {
+        return QUESTION_LIST_PREFIX + scopeKey + ":";
     }
 
     private String buildQuestionDetailCacheKey(String questionId, String scopeKey) {

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-NACOS_ADDR="${NACOS_ADDR:-http://192.168.242.10:8848}"
+NACOS_ADDR="${NACOS_ADDR:-http://127.0.0.1:8848}"
 GROUP="${NACOS_GROUP:-DEFAULT_GROUP}"
 TENANT="${NACOS_NAMESPACE:-}"
 USERNAME="${NACOS_USERNAME:-}"

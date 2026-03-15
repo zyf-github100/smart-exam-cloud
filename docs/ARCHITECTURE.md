@@ -81,7 +81,7 @@ flowchart LR
 ### 4.2 auth-service
 
 - 登录认证与 token 签发。
-- 演示账号自动补齐能力。
+- 演示账号补齐仅作为显式开发开关保留，生产默认关闭。
 - 登录短时防重与用户缓存。
 - 登录响应与 JWT 载荷携带权限码集合（`permissions` claim）。
 

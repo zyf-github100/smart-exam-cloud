@@ -37,11 +37,11 @@ const handleRiskPageChange = (value) => {
     </div>
 
     <div class="form-grid cols-3">
-      <el-input v-model="admin.riskQuery.examId" placeholder="考试ID" />
+      <el-input v-model="admin.riskQuery.examId" placeholder="考试 ID" />
       <el-select v-model="admin.riskQuery.riskLevel" clearable placeholder="风险等级">
         <el-option v-for="level in admin.riskLevelOptions" :key="level" :label="level" :value="level" />
       </el-select>
-      <el-input v-model="admin.selectedRiskSessionId" placeholder="会话ID（选填，手动查询）" />
+      <el-input v-model="admin.selectedRiskSessionId" placeholder="会话 ID（选填，手动查询）" />
     </div>
 
     <div class="action-row">
@@ -50,8 +50,8 @@ const handleRiskPageChange = (value) => {
     </div>
 
     <el-table :data="admin.riskPage.records" size="small" max-height="320" @row-click="admin.selectRiskRecord">
-      <el-table-column prop="sessionId" label="会话ID" min-width="130" />
-      <el-table-column prop="userId" label="用户ID" min-width="110" />
+      <el-table-column prop="sessionId" label="会话 ID" min-width="130" />
+      <el-table-column prop="userId" label="用户 ID" min-width="110" />
       <el-table-column label="风险等级" width="110">
         <template #default="{ row }">
           <el-tag :type="levelTagType(row.riskLevel)">{{ row.riskLevel || 'LOW' }}</el-tag>
@@ -90,7 +90,7 @@ const handleRiskPageChange = (value) => {
       </div>
 
       <el-table :data="admin.sessionRiskDetail.events || []" size="small" max-height="260">
-        <el-table-column prop="id" label="事件ID" min-width="130" />
+        <el-table-column prop="id" label="事件 ID" min-width="130" />
         <el-table-column prop="eventType" label="事件类型" min-width="140" />
         <el-table-column prop="eventScore" label="分值" width="80" />
         <el-table-column prop="eventTime" label="事件时间" min-width="165" />
@@ -116,4 +116,3 @@ const handleRiskPageChange = (value) => {
   border-top: 1px dashed rgba(175, 192, 180, 0.9);
 }
 </style>
-
