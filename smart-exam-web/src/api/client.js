@@ -107,6 +107,7 @@ export const api = {
   listUsers: () => http.get('/users'),
   createQuestion: (payload) => http.post('/questions', payload),
   listQuestions: (params) => http.get('/questions', { params }),
+  listQuestionKnowledgePoints: (params) => http.get('/questions/knowledge-points', { params }),
   getQuestion: (questionId) => http.get(`/questions/${questionId}`),
   createPaper: (payload) => http.post('/papers', payload),
   listPapers: (params) => http.get('/papers', { params }),

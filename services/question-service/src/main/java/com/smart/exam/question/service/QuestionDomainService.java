@@ -59,10 +59,12 @@ public class QuestionDomainService {
     private static final String QUESTION_DETAIL_PREFIX = "question:detail:";
     private static final String PAPER_DETAIL_PREFIX = "paper:detail:";
     private static final String QUESTION_LIST_PREFIX = "question:list:";
+    private static final String QUESTION_KNOWLEDGE_POINT_PREFIX = "question:knowledge-point:";
     private static final String ADMIN_SCOPE_KEY = "ADMIN";
     private static final String SPLIT_TOKEN_REGEX = "[,\\uFF0C\\s]+";
     private static final long MAX_PAGE_SIZE = 100L;
     private static final Set<QuestionType> CHOICE_TYPES = Set.of(QuestionType.SINGLE, QuestionType.MULTI);
+    private static final Duration QUESTION_KNOWLEDGE_POINT_TTL = Duration.ofMinutes(10);
 
     private final SnowflakeIdGenerator idGenerator;
     private final QuestionMapper questionMapper;
@@ -105,16 +107,32 @@ public class QuestionDomainService {
         Question question = toQuestion(entity);
         cacheQuestion(question, createdBy);
         evictQuestionListCache(createdBy);
+        evictKnowledgePointCache(createdBy);
         return question;
     }
 
-    public Map<String, Object> listQuestions(String operatorId, String role, String keyword, String type, Long page, Long size) {
+    public Map<String, Object> listQuestions(
+            String operatorId,
+            String role,
+            String keyword,
+            String type,
+            String knowledgePoint,
+            Long page,
+            Long size) {
         String scopeKey = resolveScopeKey(operatorId, role);
         String normalizedKeyword = trimToNull(keyword);
         String normalizedType = normalizeQuestionType(type);
+        String normalizedKnowledgePoint = trimToNull(knowledgePoint);
         long safePage = normalizePage(page);
         long safeSize = normalizeSize(size);
-        String cacheKey = buildQuestionListCacheKey(scopeKey, normalizedKeyword, normalizedType, safePage, safeSize);
+        String cacheKey = buildQuestionListCacheKey(
+                scopeKey,
+                normalizedKeyword,
+                normalizedType,
+                normalizedKnowledgePoint,
+                safePage,
+                safeSize
+        );
 
         Map<String, Object> cached = getCachedQuestionList(cacheKey);
         if (cached != null) {
@@ -123,14 +141,14 @@ public class QuestionDomainService {
 
         Long operatorLongId = isAdminRole(role) ? null : parseLongValue("userId", operatorId);
         Long total = questionMapper.selectCount(
-                buildQuestionListQuery(operatorLongId, normalizedKeyword, normalizedType, false, 0, 0)
+                buildQuestionListQuery(operatorLongId, normalizedKeyword, normalizedType, normalizedKnowledgePoint, false, 0, 0)
         );
 
         List<QuestionSummary> records = List.of();
         if (total != null && total > 0) {
             long offset = (safePage - 1) * safeSize;
             List<QuestionEntity> entities = questionMapper.selectList(
-                    buildQuestionListQuery(operatorLongId, normalizedKeyword, normalizedType, true, offset, safeSize)
+                    buildQuestionListQuery(operatorLongId, normalizedKeyword, normalizedType, normalizedKnowledgePoint, true, offset, safeSize)
             );
             records = entities.stream().map(this::toQuestionSummary).toList();
         }
@@ -142,6 +160,39 @@ public class QuestionDomainService {
         payload.put("records", records);
         putCache(cacheKey, payload, QUESTION_LIST_TTL);
         return payload;
+    }
+
+    public List<String> listKnowledgePoints(String operatorId, String role, String type) {
+        String scopeKey = resolveScopeKey(operatorId, role);
+        String normalizedType = normalizeQuestionType(type);
+        String cacheKey = buildKnowledgePointCacheKey(scopeKey, normalizedType);
+
+        List<String> cached = getCachedStringList(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
+
+        Long operatorLongId = isAdminRole(role) ? null : parseLongValue("userId", operatorId);
+        var query = Wrappers.<QuestionEntity>query();
+        query.select("DISTINCT knowledge_point");
+        if (operatorLongId != null) {
+            query.eq("created_by", operatorLongId);
+        }
+        if (StringUtils.hasText(normalizedType)) {
+            query.eq("type", normalizedType);
+        }
+        query.isNotNull("knowledge_point")
+                .ne("knowledge_point", "")
+                .orderByAsc("knowledge_point");
+
+        List<String> knowledgePoints = questionMapper.selectMaps(query).stream()
+                .map((row) -> trimToNull(stringValue(row.get("knowledge_point"))))
+                .filter(StringUtils::hasText)
+                .distinct()
+                .toList();
+
+        putCache(cacheKey, knowledgePoints, QUESTION_KNOWLEDGE_POINT_TTL);
+        return knowledgePoints;
     }
 
     public Question findQuestion(String questionId, String operatorId, String role) {
@@ -292,6 +343,23 @@ public class QuestionDomainService {
 
     private void deleteQuestionListCaches(String scopeKey) {
         Set<String> keys = redisTemplate.keys(buildQuestionListCachePrefix(scopeKey) + "*");
+        if (keys == null || keys.isEmpty()) {
+            return;
+        }
+        redisTemplate.delete(keys);
+    }
+
+    private void evictKnowledgePointCache(String operatorId) {
+        try {
+            deleteKnowledgePointCaches(resolveScopeKey(operatorId, "TEACHER"));
+            deleteKnowledgePointCaches(ADMIN_SCOPE_KEY);
+        } catch (Exception e) {
+            log.warn("Failed to evict question knowledge point cache", e);
+        }
+    }
+
+    private void deleteKnowledgePointCaches(String scopeKey) {
+        Set<String> keys = redisTemplate.keys(buildKnowledgePointCachePrefix(scopeKey) + "*");
         if (keys == null || keys.isEmpty()) {
             return;
         }
@@ -479,6 +547,7 @@ public class QuestionDomainService {
             Long operatorLongId,
             String keyword,
             String type,
+            String knowledgePoint,
             boolean withSortAndLimit,
             long offset,
             long size) {
@@ -488,6 +557,9 @@ public class QuestionDomainService {
         }
         if (StringUtils.hasText(type)) {
             query.eq(QuestionEntity::getType, type);
+        }
+        if (StringUtils.hasText(knowledgePoint)) {
+            query.eq(QuestionEntity::getKnowledgePoint, knowledgePoint);
         }
         if (StringUtils.hasText(keyword)) {
             Long keywordId = tryParseLong(keyword);
@@ -630,6 +702,20 @@ public class QuestionDomainService {
         }
     }
 
+    private List<String> getCachedStringList(String cacheKey) {
+        try {
+            String cachedJson = redisTemplate.opsForValue().get(cacheKey);
+            if (!StringUtils.hasText(cachedJson)) {
+                return null;
+            }
+            return objectMapper.readValue(cachedJson, new TypeReference<List<String>>() {
+            });
+        } catch (Exception e) {
+            log.warn("Failed to read string list cache, key={}", cacheKey, e);
+            return null;
+        }
+    }
+
     private void putCache(String cacheKey, Object value, Duration ttl) {
         try {
             redisTemplate.opsForValue().set(cacheKey, writeAsJson(value), ttl);
@@ -698,6 +784,10 @@ public class QuestionDomainService {
         }
     }
 
+    private String stringValue(Object rawValue) {
+        return rawValue == null ? null : String.valueOf(rawValue);
+    }
+
     private void ensureResourceOwner(Long ownerId, String operatorId, String role, String message) {
         if (isAdminRole(role)) {
             return;
@@ -716,11 +806,18 @@ public class QuestionDomainService {
         return isAdminRole(role) ? ADMIN_SCOPE_KEY : parseLongValue("userId", operatorId) + "";
     }
 
-    private String buildQuestionListCacheKey(String scopeKey, String keyword, String type, long page, long size) {
+    private String buildQuestionListCacheKey(
+            String scopeKey,
+            String keyword,
+            String type,
+            String knowledgePoint,
+            long page,
+            long size) {
         String cachePayload = String.join("|",
                 scopeKey,
                 keyword == null ? "" : keyword,
                 type == null ? "" : type,
+                knowledgePoint == null ? "" : knowledgePoint,
                 String.valueOf(page),
                 String.valueOf(size)
         );
@@ -729,6 +826,14 @@ public class QuestionDomainService {
 
     private String buildQuestionListCachePrefix(String scopeKey) {
         return QUESTION_LIST_PREFIX + scopeKey + ":";
+    }
+
+    private String buildKnowledgePointCacheKey(String scopeKey, String type) {
+        return buildKnowledgePointCachePrefix(scopeKey) + sha256Hex(scopeKey + "|" + (type == null ? "" : type));
+    }
+
+    private String buildKnowledgePointCachePrefix(String scopeKey) {
+        return QUESTION_KNOWLEDGE_POINT_PREFIX + scopeKey + ":";
     }
 
     private String buildQuestionDetailCacheKey(String questionId, String scopeKey) {

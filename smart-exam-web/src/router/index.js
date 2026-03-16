@@ -10,13 +10,17 @@ import {
 
 const adminModule = consoleModules.find((item) => item.name === 'admin')
 const questionModule = consoleModules.find((item) => item.name === 'questions')
-const normalModules = consoleModules.filter((item) => !['admin', 'questions'].includes(item.name))
+const paperModule = consoleModules.find((item) => item.name === 'papers')
+const normalModules = consoleModules.filter((item) => !['admin', 'questions', 'papers'].includes(item.name))
 
 if (!adminModule) {
   throw new Error('Admin module metadata is missing in consoleModules.')
 }
 if (!questionModule) {
   throw new Error('Question module metadata is missing in consoleModules.')
+}
+if (!paperModule) {
+  throw new Error('Paper module metadata is missing in consoleModules.')
 }
 
 const lazyPages = {
@@ -26,6 +30,7 @@ const lazyPages = {
   'questions-create': () => import('../components/console/question/QuestionCreatePage.vue'),
   'questions-library': () => import('../components/console/question/QuestionLibraryPage.vue'),
   papers: () => import('../components/console/PaperTab.vue'),
+  'papers-question-picker': () => import('../components/console/paper/PaperQuestionPickerPage.vue'),
   exams: () => import('../components/console/ExamTab.vue'),
   grading: () => import('../components/console/GradingTab.vue'),
   reports: () => import('../components/console/ReportTab.vue'),
@@ -74,6 +79,31 @@ const routes = [
       tips: module.tips,
     },
   })),
+  {
+    path: paperModule.path,
+    name: paperModule.name,
+    component: resolveLazyPage('papers'),
+    meta: {
+      moduleName: paperModule.name,
+      public: paperModule.public,
+      roles: paperModule.roles,
+      permissionsAny: paperModule.permissionsAny,
+      label: paperModule.label,
+      tagline: paperModule.tagline,
+      description: paperModule.description,
+      tips: paperModule.tips,
+    },
+  },
+  {
+    path: '/papers/question-picker',
+    name: 'papers-question-picker',
+    component: resolveLazyPage('papers-question-picker'),
+    meta: {
+      moduleName: paperModule.name,
+      roles: ['ADMIN', 'TEACHER'],
+      permissionsAny: ['PAPER_CREATE'],
+    },
+  },
   {
     path: questionModule.path,
     name: questionModule.name,
