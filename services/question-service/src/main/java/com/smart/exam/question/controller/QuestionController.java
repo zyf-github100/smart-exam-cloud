@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -44,13 +45,24 @@ public class QuestionController {
     public ApiResponse<Map<String, Object>> listQuestions(
             @RequestParam(name = "keyword", required = false) String keyword,
             @RequestParam(name = "type", required = false) String type,
+            @RequestParam(name = "knowledgePoint", required = false) String knowledgePoint,
             @RequestParam(name = "page", required = false) Long page,
             @RequestParam(name = "size", required = false) Long size,
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-Role", required = false) String role,
             @RequestHeader(value = "X-Permissions", required = false) String permissions) {
         String operatorId = requireTeacherOrAdmin(userId, role, permissions, PermissionCodes.QUESTION_LIST);
-        return ApiResponse.ok(questionDomainService.listQuestions(operatorId, role, keyword, type, page, size));
+        return ApiResponse.ok(questionDomainService.listQuestions(operatorId, role, keyword, type, knowledgePoint, page, size));
+    }
+
+    @GetMapping("/questions/knowledge-points")
+    public ApiResponse<List<String>> listQuestionKnowledgePoints(
+            @RequestParam(name = "type", required = false) String type,
+            @RequestHeader(value = "X-User-Id", required = false) String userId,
+            @RequestHeader(value = "X-Role", required = false) String role,
+            @RequestHeader(value = "X-Permissions", required = false) String permissions) {
+        String operatorId = requireTeacherOrAdmin(userId, role, permissions, PermissionCodes.QUESTION_LIST);
+        return ApiResponse.ok(questionDomainService.listKnowledgePoints(operatorId, role, type));
     }
 
     @GetMapping("/questions/{questionId}")
