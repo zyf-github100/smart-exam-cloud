@@ -47,7 +47,6 @@ public class AuthService {
     private final RolePermissionReadMapper rolePermissionReadMapper;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
-    private final boolean allowLegacyPlainPassword;
     private final boolean bootstrapDemoUsers;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final Map<String, DemoUser> demoUsers = Map.of(
@@ -117,17 +116,13 @@ public class AuthService {
                        RolePermissionReadMapper rolePermissionReadMapper,
                        StringRedisTemplate redisTemplate,
                        ObjectMapper objectMapper,
-                       @Value("${smart-exam.auth.bootstrap-demo-users:false}")
-                       boolean bootstrapDemoUsers,
-                       @Value("${smart-exam.auth.security.allow-legacy-plain-password:false}")
-                       boolean allowLegacyPlainPassword) {
+                       @Value("${smart-exam.auth.bootstrap-demo-users:false}") boolean bootstrapDemoUsers) {
         this.jwtUtil = jwtUtil;
         this.sysUserMapper = sysUserMapper;
         this.rolePermissionReadMapper = rolePermissionReadMapper;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
         this.bootstrapDemoUsers = bootstrapDemoUsers;
-        this.allowLegacyPlainPassword = allowLegacyPlainPassword;
     }
 
     public Map<String, Object> login(LoginRequest request) {
@@ -146,7 +141,6 @@ public class AuthService {
         if (!passwordMatched) {
             throw new BizException(ErrorCode.UNAUTHORIZED, "Invalid username or password");
         }
-        upgradePasswordHashIfNeeded(user, request.getPassword());
         if (user.getStatus() == null || user.getStatus() != 1) {
             throw new BizException(ErrorCode.FORBIDDEN, "User is disabled");
         }
@@ -240,37 +234,16 @@ public class AuthService {
     }
 
     private boolean passwordMatches(String rawPassword, String storedPasswordHash) {
-        if (!StringUtils.hasText(rawPassword) || !StringUtils.hasText(storedPasswordHash)) {
+        if (!StringUtils.hasText(rawPassword)
+                || !StringUtils.hasText(storedPasswordHash)
+                || !isBcryptHash(storedPasswordHash)) {
             return false;
-        }
-        if (isBcryptHash(storedPasswordHash)) {
-            try {
-                return passwordEncoder.matches(rawPassword, storedPasswordHash);
-            } catch (Exception ex) {
-                log.warn("Failed to verify bcrypt password", ex);
-                return false;
-            }
-        }
-        if (!allowLegacyPlainPassword) {
-            log.warn("Rejected legacy plain password login attempt for account");
-            return false;
-        }
-        return rawPassword.equals(storedPasswordHash);
-    }
-
-    private void upgradePasswordHashIfNeeded(SysUserEntity user, String rawPassword) {
-        if (user == null
-                || !StringUtils.hasText(rawPassword)
-                || isBcryptHash(user.getPasswordHash())
-                || !allowLegacyPlainPassword) {
-            return;
         }
         try {
-            user.setPasswordHash(passwordEncoder.encode(rawPassword));
-            sysUserMapper.updateById(user);
-            cacheUser(user);
+            return passwordEncoder.matches(rawPassword, storedPasswordHash);
         } catch (Exception ex) {
-            log.warn("Failed to upgrade password hash, userId={}", user.getId(), ex);
+            log.warn("Failed to verify bcrypt password", ex);
+            return false;
         }
     }
 

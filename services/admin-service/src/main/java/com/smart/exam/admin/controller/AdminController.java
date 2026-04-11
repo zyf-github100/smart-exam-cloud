@@ -178,6 +178,8 @@ public class AdminController {
 
     @GetMapping("/audits")
     public ApiResponse<Map<String, Object>> listAudits(
+            @RequestParam(name = "serviceName", required = false) String serviceName,
+            @RequestParam(name = "moduleKey", required = false) String moduleKey,
             @RequestParam(name = "operatorId", required = false) String operatorId,
             @RequestParam(name = "action", required = false) String action,
             @RequestParam(name = "targetType", required = false) String targetType,
@@ -188,7 +190,7 @@ public class AdminController {
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-Role", required = false) String role) {
         requireAdmin(userId, role);
-        return ApiResponse.ok(adminService.listAuditLogs(operatorId, action, targetType, startTime, endTime, page, size));
+        return ApiResponse.ok(adminService.listAuditLogs(serviceName, moduleKey, operatorId, action, targetType, startTime, endTime, page, size));
     }
 
     private void requireAdmin(String userId, String role) {
@@ -199,21 +201,9 @@ public class AdminController {
     private OperatorContext buildAdminContext(String userId, String role, HttpServletRequest servletRequest) {
         String operatorId = RoleGuard.requireUserId(userId);
         String operatorRole = RoleGuard.requireRole(role, "ADMIN");
-        String ip = extractClientIp(servletRequest);
-        String userAgent = servletRequest == null ? null : servletRequest.getHeader("User-Agent");
+        String ip = com.smart.exam.common.web.audit.AuditHttpUtils.extractClientIp(servletRequest);
+        String userAgent = com.smart.exam.common.web.audit.AuditHttpUtils.extractUserAgent(servletRequest);
         return new OperatorContext(operatorId, operatorRole, ip, userAgent);
-    }
-
-    private String extractClientIp(HttpServletRequest request) {
-        if (request == null) {
-            return null;
-        }
-        String fromHeader = request.getHeader("X-Forwarded-For");
-        if (fromHeader != null && !fromHeader.isBlank()) {
-            String[] parts = fromHeader.split(",");
-            return parts[0].trim();
-        }
-        return request.getRemoteAddr();
     }
 
     private record OperatorContext(String userId, String role, String ip, String userAgent) {

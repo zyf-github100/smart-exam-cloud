@@ -87,18 +87,20 @@ If your Nacos address/account changes, set these before starting services:
 - `NACOS_GROUP`
 - `NACOS_NAMESPACE`
 - `NACOS_AUTH_ENABLE` / `NACOS_AUTH_TOKEN` / `NACOS_AUTH_IDENTITY_KEY` / `NACOS_AUTH_IDENTITY_VALUE` in `.env`
+- `MYSQL_HOST` / `MYSQL_PORT` (preferred; service YAML keeps the correct per-service database name)
+- `MYSQL_URL` (optional; only when you need to override the full JDBC URL)
 - `MYSQL_USERNAME` / `MYSQL_PASSWORD`
 - `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD`
 - `RABBITMQ_HOST` / `RABBITMQ_PORT` / `RABBITMQ_USERNAME` / `RABBITMQ_PASSWORD`
 - `JWT_SECRET` (required, at least 32 bytes; supports plain or Base64)
 - `BOOTSTRAP_DEMO_USERS` (optional, default `false`; only for local bootstrap)
-- `ALLOW_LEGACY_PLAIN_PASSWORD` (optional, default `false`; only for temporary legacy password migration)
 
 JWT secret validation notes:
 
 - Service startup will fail if `JWT_SECRET` is empty.
 - Service startup will fail if `JWT_SECRET` still uses the historical default demo secret.
 - Service startup will fail if decoded secret length is less than 32 bytes.
+- `auth-service` startup will fail if `ALLOW_LEGACY_PLAIN_PASSWORD` is still configured or if `sys_user.password_hash` still contains legacy plain passwords. Use `docs/password-migration.md` for the offline cutover flow.
 
 Nacos exposure notes:
 

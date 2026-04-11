@@ -136,11 +136,17 @@ docker exec -i smart-exam-mysql mysql --default-character-set=utf8mb4 -uroot -pr
 至少要保证这些地址可达：
 
 - `NACOS_SERVER_ADDR` -> `127.0.0.1:8848`
-- MySQL 地址 -> `127.0.0.1:3306`
-- Redis 地址 -> `127.0.0.1:6379`
-- RabbitMQ 地址 -> `127.0.0.1:5672`
+- `MYSQL_HOST` / `MYSQL_PORT` -> `127.0.0.1:3306`
+- `MYSQL_URL` -> 可选，仅在需要覆盖完整 JDBC URL 时设置
+- `REDIS_HOST` / `REDIS_PORT` -> `127.0.0.1:6379`
+- `RABBITMQ_HOST` / `RABBITMQ_PORT` -> `127.0.0.1:5672`
 - `JWT_SECRET` -> 必填（至少 32 字节，支持明文或 Base64）
-- `ALLOW_LEGACY_PLAIN_PASSWORD` -> 可选（默认 `false`，仅用于历史明文密码迁移窗口）
+
+历史明文密码迁移不再通过运行期开关完成，统一使用离线工具：
+
+- Runbook：`docs/password-migration.md`
+- PowerShell：`scripts/security/migrate-legacy-passwords.ps1`
+- Bash：`scripts/security/migrate-legacy-passwords.sh`
 
 ### 7.1 本地后端直连服务器中间件
 
@@ -590,9 +596,14 @@ curl http://localhost:9000/api/v1/grading/sessions/<sessionId>/result \
 
 - 先确认已设置 `JWT_SECRET`（明文或 Base64，解码后至少 32 字节）。
 - 若提示使用历史默认密钥，请更换为新密钥后重启 `auth-service` 与 `gateway-service`。
-- 若在迁移历史明文密码阶段需要临时兼容，可设置 `ALLOW_LEGACY_PLAIN_PASSWORD=true`，迁移完成后应立即恢复为 `false`。
 
-### 11.10 学生已提交但“成绩解析”仍显示未开放
+### 11.10 auth-service 启动时报历史明文密码或遗留迁移开关
+
+- `ALLOW_LEGACY_PLAIN_PASSWORD` 已收口，若仍在环境变量或 Nacos 中配置，删除后重启服务。
+- 若提示存在 legacy plain-password records，先执行 `docs/password-migration.md` 中的 dry-run / migrate 流程，再重启 `auth-service`。
+- 不要再通过重新开启兼容开关绕过校验；新版本会直接拒绝启动。
+
+### 11.11 学生已提交但“成绩解析”仍显示未开放
 
 - 先确认会话是否已完成判卷：`taskStatus` 需为 `AUTO_DONE` 或 `DONE`。
 - 若考试未结束，属于预期行为；可由老师调用 `PUT /api/v1/grading/exams/{examId}/result-release` 提前开放。

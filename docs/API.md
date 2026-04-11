@@ -1,6 +1,6 @@
 # smart-exam-cloud API 接口文档
 
-> 本文按仓库内 Controller 与 Service 源码整理，最后核对日期：2026-03-13。
+> 本文按仓库内 Controller 与 Service 源码整理，最后核对日期：2026-04-12。
 > 推荐统一通过网关 `http://localhost:9000` 访问；文中路径均为网关路径。
 
 ## 1. 通用约定

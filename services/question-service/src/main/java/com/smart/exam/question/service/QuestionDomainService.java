@@ -7,6 +7,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smart.exam.common.core.error.BizException;
 import com.smart.exam.common.core.error.ErrorCode;
 import com.smart.exam.common.core.id.SnowflakeIdGenerator;
+import com.smart.exam.common.web.audit.AuditActions;
+import com.smart.exam.common.web.audit.AuditLogCommand;
+import com.smart.exam.common.web.audit.AuditLogService;
+import com.smart.exam.common.web.audit.AuditModules;
+import com.smart.exam.common.web.audit.AuditTargetTypes;
 import com.smart.exam.question.dto.CreatePaperRequest;
 import com.smart.exam.question.dto.CreateQuestionRequest;
 import com.smart.exam.question.entity.PaperEntity;
@@ -70,22 +75,29 @@ public class QuestionDomainService {
     private final PaperQuestionMapper paperQuestionMapper;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+    private final AuditLogService auditLogService;
 
     public QuestionDomainService(SnowflakeIdGenerator idGenerator,
                                  QuestionMapper questionMapper,
                                  PaperMapper paperMapper,
                                  PaperQuestionMapper paperQuestionMapper,
                                  StringRedisTemplate redisTemplate,
-                                 ObjectMapper objectMapper) {
+                                 ObjectMapper objectMapper,
+                                 AuditLogService auditLogService) {
         this.idGenerator = idGenerator;
         this.questionMapper = questionMapper;
         this.paperMapper = paperMapper;
         this.paperQuestionMapper = paperQuestionMapper;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
+        this.auditLogService = auditLogService;
     }
 
-    public Question createQuestion(CreateQuestionRequest request, String createdBy) {
+    public Question createQuestion(CreateQuestionRequest request,
+                                   String createdBy,
+                                   String role,
+                                   String ip,
+                                   String userAgent) {
         protectFromDuplicateSubmission("create-question", createdBy, request);
         NormalizedQuestionPayload normalizedPayload = normalizeQuestionPayload(request);
 
@@ -105,6 +117,25 @@ public class QuestionDomainService {
         Question question = toQuestion(entity);
         cacheQuestion(question, createdBy);
         evictQuestionListCache(createdBy);
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("questionType", question.getType() == null ? null : question.getType().name());
+        detail.put("difficulty", question.getDifficulty());
+        detail.put("knowledgePoint", question.getKnowledgePoint());
+        detail.put("optionCount", question.getOptions() == null ? 0 : question.getOptions().size());
+        detail.put("createdBy", question.getCreatedBy());
+        auditLogService.record(
+                AuditLogCommand.builder()
+                        .moduleKey(AuditModules.QUESTION)
+                        .operatorId(createdBy)
+                        .operatorRole(role)
+                        .action(AuditActions.QUESTION_CREATED)
+                        .targetType(AuditTargetTypes.QUESTION)
+                        .targetId(question.getId())
+                        .detail(detail)
+                        .ip(ip)
+                        .userAgent(userAgent)
+                        .build()
+        );
         return question;
     }
 
@@ -164,7 +195,11 @@ public class QuestionDomainService {
     }
 
     @Transactional
-    public Paper createPaper(CreatePaperRequest request, String createdBy, String role) {
+    public Paper createPaper(CreatePaperRequest request,
+                             String createdBy,
+                             String role,
+                             String ip,
+                             String userAgent) {
         protectFromDuplicateSubmission("create-paper", createdBy, request);
 
         List<NormalizedPaperQuestion> normalizedQuestions = normalizePaperQuestions(request.getQuestions());
@@ -212,6 +247,28 @@ public class QuestionDomainService {
 
         Paper paper = toPaper(paperEntity, relationEntities);
         putCache(buildPaperDetailCacheKey(paper.getId(), resolveScopeKey(createdBy, role)), paper, PAPER_DETAIL_TTL);
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("paperName", paper.getName());
+        detail.put("questionCount", paper.getQuestions() == null ? 0 : paper.getQuestions().size());
+        detail.put("questionIds", paper.getQuestions() == null
+                ? List.of()
+                : paper.getQuestions().stream().map(PaperQuestion::getQuestionId).toList());
+        detail.put("totalScore", paper.getTotalScore());
+        detail.put("timeLimitMinutes", paper.getTimeLimitMinutes());
+        detail.put("createdBy", paper.getCreatedBy());
+        auditLogService.record(
+                AuditLogCommand.builder()
+                        .moduleKey(AuditModules.PAPER)
+                        .operatorId(createdBy)
+                        .operatorRole(role)
+                        .action(AuditActions.PAPER_CREATED)
+                        .targetType(AuditTargetTypes.PAPER)
+                        .targetId(paper.getId())
+                        .detail(detail)
+                        .ip(ip)
+                        .userAgent(userAgent)
+                        .build()
+        );
         return paper;
     }
 

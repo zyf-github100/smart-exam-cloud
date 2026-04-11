@@ -1,12 +1,14 @@
 package com.smart.exam.grading.controller;
 
 import com.smart.exam.common.core.model.ApiResponse;
+import com.smart.exam.common.web.audit.AuditHttpUtils;
 import com.smart.exam.common.web.security.PermissionCodes;
 import com.smart.exam.common.web.security.RoleGuard;
 import com.smart.exam.grading.dto.ManualScoreRequest;
 import com.smart.exam.grading.dto.ResultReleaseRequest;
 import com.smart.exam.grading.model.GradingTask;
 import com.smart.exam.grading.service.GradingDomainService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -47,14 +49,22 @@ public class GradingController {
             @Valid @RequestBody ManualScoreRequest request,
             @RequestHeader(value = "X-User-Id", required = false) String graderId,
             @RequestHeader(value = "X-Role", required = false) String role,
-            @RequestHeader(value = "X-Permissions", required = false) String permissions) {
+            @RequestHeader(value = "X-Permissions", required = false) String permissions,
+            HttpServletRequest servletRequest) {
         String safeGraderId = requireTeacherOrAdmin(
                 graderId,
                 role,
                 permissions,
                 PermissionCodes.GRADING_MANUAL_SCORE
         );
-        return ApiResponse.ok(gradingDomainService.manualScore(taskId, request, safeGraderId, role));
+        return ApiResponse.ok(gradingDomainService.manualScore(
+                taskId,
+                request,
+                safeGraderId,
+                role,
+                AuditHttpUtils.extractClientIp(servletRequest),
+                AuditHttpUtils.extractUserAgent(servletRequest)
+        ));
     }
 
     @PutMapping("/exams/{examId}/result-release")
@@ -63,10 +73,18 @@ public class GradingController {
             @Valid @RequestBody ResultReleaseRequest request,
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-Role", required = false) String role,
-            @RequestHeader(value = "X-Permissions", required = false) String permissions) {
+            @RequestHeader(value = "X-Permissions", required = false) String permissions,
+            HttpServletRequest servletRequest) {
         String operatorId = requireTeacherOrAdmin(userId, role, permissions, PermissionCodes.GRADING_TASK_VIEW);
         return ApiResponse.ok(
-                gradingDomainService.updateExamResultRelease(examId, Boolean.TRUE.equals(request.getReleased()), operatorId, role)
+                gradingDomainService.updateExamResultRelease(
+                        examId,
+                        Boolean.TRUE.equals(request.getReleased()),
+                        operatorId,
+                        role,
+                        AuditHttpUtils.extractClientIp(servletRequest),
+                        AuditHttpUtils.extractUserAgent(servletRequest)
+                )
         );
     }
 

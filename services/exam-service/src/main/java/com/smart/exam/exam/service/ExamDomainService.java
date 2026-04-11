@@ -8,6 +8,11 @@ import com.smart.exam.common.core.error.BizException;
 import com.smart.exam.common.core.error.ErrorCode;
 import com.smart.exam.common.core.event.ExamSubmittedEvent;
 import com.smart.exam.common.core.id.SnowflakeIdGenerator;
+import com.smart.exam.common.web.audit.AuditActions;
+import com.smart.exam.common.web.audit.AuditLogCommand;
+import com.smart.exam.common.web.audit.AuditLogService;
+import com.smart.exam.common.web.audit.AuditModules;
+import com.smart.exam.common.web.audit.AuditTargetTypes;
 import com.smart.exam.exam.config.AntiCheatProperties;
 import com.smart.exam.exam.config.RabbitConfig;
 import com.smart.exam.exam.dto.CreateExamRequest;
@@ -62,6 +67,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.HexFormat;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Comparator;
@@ -98,6 +104,7 @@ public class ExamDomainService {
     private final AntiCheatProperties antiCheatProperties;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+    private final AuditLogService auditLogService;
 
     public ExamDomainService(SnowflakeIdGenerator idGenerator,
                              ObjectProvider<RabbitTemplate> rabbitTemplateProvider,
@@ -112,7 +119,8 @@ public class ExamDomainService {
                              AntiCheatRuleEngine antiCheatRuleEngine,
                              AntiCheatProperties antiCheatProperties,
                              StringRedisTemplate redisTemplate,
-                             ObjectMapper objectMapper) {
+                             ObjectMapper objectMapper,
+                             AuditLogService auditLogService) {
         this.idGenerator = idGenerator;
         this.rabbitTemplate = rabbitTemplateProvider.getIfAvailable();
         this.examMapper = examMapper;
@@ -127,10 +135,15 @@ public class ExamDomainService {
         this.antiCheatProperties = antiCheatProperties;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
+        this.auditLogService = auditLogService;
     }
 
     @Transactional
-    public Exam createExam(CreateExamRequest request, String userId, String role) {
+    public Exam createExam(CreateExamRequest request,
+                           String userId,
+                           String role,
+                           String ip,
+                           String userAgent) {
         protectDuplicateCreate(userId, request);
 
         if (!request.getStartTime().isBefore(request.getEndTime())) {
@@ -166,11 +179,37 @@ public class ExamDomainService {
         exam.setTargetStudentCount(targetStudentIds.size());
         exam.setStudentIds(targetStudentIds.stream().map(String::valueOf).toList());
         putExamCache(exam);
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("title", exam.getTitle());
+        detail.put("paperId", exam.getPaperId());
+        detail.put("startTime", exam.getStartTime());
+        detail.put("endTime", exam.getEndTime());
+        detail.put("antiCheatLevel", exam.getAntiCheatLevel());
+        detail.put("targetStudentCount", exam.getTargetStudentCount());
+        detail.put("studentIds", exam.getStudentIds());
+        detail.put("createdBy", exam.getCreatedBy());
+        auditLogService.record(
+                AuditLogCommand.builder()
+                        .moduleKey(AuditModules.EXAM)
+                        .operatorId(userId)
+                        .operatorRole(role)
+                        .action(AuditActions.EXAM_CREATED)
+                        .targetType(AuditTargetTypes.EXAM)
+                        .targetId(exam.getId())
+                        .detail(detail)
+                        .ip(ip)
+                        .userAgent(userAgent)
+                        .build()
+        );
         return exam;
     }
 
     @Transactional
-    public Map<String, Object> startExam(String examId, String userId, String role, String ip) {
+    public Map<String, Object> startExam(String examId,
+                                         String userId,
+                                         String role,
+                                         String ip,
+                                         String userAgent) {
         Exam exam = getExam(examId);
         LocalDateTime now = LocalDateTime.now();
         if (now.isBefore(exam.getStartTime()) || !now.isBefore(exam.getEndTime())) {
@@ -219,6 +258,25 @@ public class ExamDomainService {
         payload.put("sessionId", String.valueOf(sessionEntity.getId()));
         payload.put("serverTime", now);
         payload.put("timeLimitSeconds", timeLimitSeconds);
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("examId", examId);
+        detail.put("sessionId", String.valueOf(sessionEntity.getId()));
+        detail.put("serverTime", now);
+        detail.put("timeLimitSeconds", timeLimitSeconds);
+        detail.put("sessionStartTime", sessionEntity.getStartTime());
+        auditLogService.record(
+                AuditLogCommand.builder()
+                        .moduleKey(AuditModules.EXAM_SESSION)
+                        .operatorId(userId)
+                        .operatorRole(role)
+                        .action(AuditActions.EXAM_SESSION_STARTED)
+                        .targetType(AuditTargetTypes.EXAM_SESSION)
+                        .targetId(String.valueOf(sessionEntity.getId()))
+                        .detail(detail)
+                        .ip(ip)
+                        .userAgent(userAgent)
+                        .build()
+        );
         return payload;
     }
 
@@ -470,7 +528,11 @@ public class ExamDomainService {
     }
 
     @Transactional
-    public Map<String, Object> submit(String sessionId, String userId) {
+    public Map<String, Object> submit(String sessionId,
+                                      String userId,
+                                      String role,
+                                      String ip,
+                                      String userAgent) {
         if (!acquireSubmitLock(sessionId)) {
             throw new BizException(ErrorCode.CONFLICT, "Duplicate submit request");
         }
@@ -506,6 +568,25 @@ public class ExamDomainService {
         event.setSubmittedAt(OffsetDateTime.now());
         publishSubmittedEvent(event);
 
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("examId", String.valueOf(session.getExamId()));
+        detail.put("sessionId", sessionId);
+        detail.put("submittedAt", session.getSubmitTime());
+        detail.put("deadlineExceeded", deadlineExceeded);
+        auditLogService.record(
+                AuditLogCommand.builder()
+                        .moduleKey(AuditModules.EXAM_SESSION)
+                        .operatorId(userId)
+                        .operatorRole(role)
+                        .action(AuditActions.EXAM_SESSION_SUBMITTED)
+                        .targetType(AuditTargetTypes.EXAM_SESSION)
+                        .targetId(sessionId)
+                        .detail(detail)
+                        .ip(ip)
+                        .userAgent(userAgent)
+                        .build()
+        );
+
         return Map.of(
                 "sessionId", sessionId,
                 "status", session.getStatus(),
@@ -517,7 +598,9 @@ public class ExamDomainService {
     @Transactional
     public Map<String, Object> reportAntiCheatEvent(String sessionId,
                                                     String userId,
+                                                    String role,
                                                     String clientIp,
+                                                    String userAgent,
                                                     ReportAntiCheatEventRequest request) {
         long sessionLongId = parseLong("sessionId", sessionId);
         ExamSessionEntity session = getSessionEntity(sessionLongId);
@@ -591,6 +674,29 @@ public class ExamDomainService {
         payload.put("eventType", eventType);
         payload.put("eventScore", eventScore);
         payload.put("riskSummary", toRiskSummary(currentSummary));
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("examId", String.valueOf(session.getExamId()));
+        detail.put("sessionId", sessionId);
+        detail.put("eventType", eventType);
+        detail.put("eventTime", eventTime);
+        detail.put("eventScore", eventScore);
+        detail.put("riskLevel", currentSummary.getRiskLevel());
+        detail.put("riskScore", currentSummary.getRiskScore());
+        detail.put("eventCount", currentSummary.getEventCount());
+        detail.put("metadata", request.getMetadata() == null ? Collections.emptyMap() : request.getMetadata());
+        auditLogService.record(
+                AuditLogCommand.builder()
+                        .moduleKey(AuditModules.ANTI_CHEAT)
+                        .operatorId(userId)
+                        .operatorRole(role)
+                        .action(AuditActions.ANTI_CHEAT_EVENT_REPORTED)
+                        .targetType(AuditTargetTypes.ANTI_CHEAT_EVENT)
+                        .targetId(String.valueOf(eventEntity.getId()))
+                        .detail(detail)
+                        .ip(clientIp)
+                        .userAgent(userAgent)
+                        .build()
+        );
         return payload;
     }
 

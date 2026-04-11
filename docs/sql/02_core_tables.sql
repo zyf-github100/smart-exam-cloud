@@ -58,6 +58,8 @@ CREATE TABLE IF NOT EXISTS sys_role_permission (
 
 CREATE TABLE IF NOT EXISTS sys_audit_log (
     id BIGINT PRIMARY KEY,
+    service_name VARCHAR(64) NOT NULL,
+    module_key VARCHAR(64) NOT NULL,
     operator_id BIGINT NOT NULL,
     operator_role VARCHAR(32) NOT NULL,
     action VARCHAR(64) NOT NULL,
@@ -67,6 +69,8 @@ CREATE TABLE IF NOT EXISTS sys_audit_log (
     ip VARCHAR(64),
     user_agent VARCHAR(255),
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_sys_audit_log_service_created(service_name, created_at),
+    INDEX idx_sys_audit_log_module_created(module_key, created_at),
     INDEX idx_sys_audit_log_operator_created(operator_id, created_at),
     INDEX idx_sys_audit_log_action_created(action, created_at),
     INDEX idx_sys_audit_log_created(created_at)

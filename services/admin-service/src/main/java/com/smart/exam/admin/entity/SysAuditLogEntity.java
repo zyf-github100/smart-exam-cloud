@@ -11,6 +11,8 @@ public class SysAuditLogEntity {
 
     @TableId(value = "id", type = IdType.INPUT)
     private Long id;
+    private String serviceName;
+    private String moduleKey;
     private Long operatorId;
     private String operatorRole;
     private String action;
@@ -27,6 +29,22 @@ public class SysAuditLogEntity {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getServiceName() {
+        return serviceName;
+    }
+
+    public void setServiceName(String serviceName) {
+        this.serviceName = serviceName;
+    }
+
+    public String getModuleKey() {
+        return moduleKey;
+    }
+
+    public void setModuleKey(String moduleKey) {
+        this.moduleKey = moduleKey;
     }
 
     public Long getOperatorId() {

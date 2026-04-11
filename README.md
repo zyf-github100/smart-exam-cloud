@@ -53,7 +53,7 @@ smart-exam-cloud/
   - 登录响应与 JWT claim 携带权限码集合（`permissions`）
   - 权限来源优先读取角色权限矩阵（`admin_db.sys_role_permission`），读取失败时按角色默认权限回退
   - 账号来源：`sys_user`
-  - 密码策略：默认仅接受 BCrypt 密码；可通过 `ALLOW_LEGACY_PLAIN_PASSWORD=true` 临时开启历史明文兼容迁移窗口
+  - 密码策略：仅接受 BCrypt 密码；服务启动时会拒绝历史明文密码记录与遗留迁移开关
   - JWT 密钥：必须通过 `JWT_SECRET` 注入（明文或 Base64，解码后至少 32 字节）
   - 测试账号依赖 SQL 初始化或种子数据导入；生产默认不会自动补齐演示账号
   - 仅本地开发需要时，可通过 `BOOTSTRAP_DEMO_USERS=true` 临时开启演示账号补齐能力
@@ -206,13 +206,17 @@ docker compose ps nacos
 - `NACOS_PASSWORD`
 - `NACOS_GROUP`
 - `NACOS_NAMESPACE`
+- `MYSQL_HOST` / `MYSQL_PORT`（推荐优先覆盖主机与端口；各服务模板会保留自己的数据库名）
+- `MYSQL_URL`（可选；仅在需要一次性覆盖完整 JDBC URL 时使用）
+- `MYSQL_USERNAME` / `MYSQL_PASSWORD`
+- `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD`
+- `RABBITMQ_HOST` / `RABBITMQ_PORT` / `RABBITMQ_USERNAME` / `RABBITMQ_PASSWORD`
 - `NACOS_AUTH_ENABLE`（`.env`，建议保持 `true`）
 - `NACOS_AUTH_TOKEN`（`.env`，Base64 编码且原始密钥至少 32 字节）
 - `NACOS_AUTH_IDENTITY_KEY` / `NACOS_AUTH_IDENTITY_VALUE`（`.env`，用于 Nacos Server 间身份校验）
 - `NACOS_AUTH_TOKEN_EXPIRE_SECONDS`（`.env`，可选，默认 `18000`）
 - `JWT_SECRET`（必填，至少 32 字节，支持明文或 Base64）
 - `BOOTSTRAP_DEMO_USERS`（可选，默认 `false`；仅建议本地开发临时开启）
-- `ALLOW_LEGACY_PLAIN_PASSWORD`（可选，默认 `false`；仅用于历史明文密码迁移窗口）
 
 如果需要把 Nacos 控制台暴露到外网，务必同时满足：
 
@@ -221,6 +225,7 @@ docker compose ps nacos
 - 仅放行 `8848/9848/9849` 给受控来源
 
 未设置 `JWT_SECRET` 或使用不合规密钥时，`auth-service/gateway-service` 会在启动阶段直接失败。
+历史明文密码迁移请使用离线工具，执行步骤见 [docs/password-migration.md](docs/password-migration.md)。
 
 ## 3.5 编译
 
@@ -277,7 +282,7 @@ curl http://localhost:9000/api/v1/users/me \
 - Nacos 用于服务注册发现与统一配置管理。
 - SQL 已包含必要索引与唯一约束（含 `e_exam_target(exam_id,student_id)` 发布去重、`e_exam_session(exam_id,user_id)` 会话唯一、事件落库去重相关约束）。
 
-## 6. 迭代进度（截至 2026-03-09）
+## 6. 迭代进度（截至 2026-04-12，按仓库现状核对）
 
 已完成：
 
@@ -288,16 +293,17 @@ curl http://localhost:9000/api/v1/users/me \
 - 老师成绩单查询（`/reports/exams/{examId}/score-sheet`）。
 - 交卷-判卷链路一致性修复（提交失败回滚、判卷任务自愈）。
 - 学生端成绩与解析查看、老师按考试开放解析能力（`/grading/**/result*`）。
+- 前端控制台已覆盖连接、题库、试卷、考试、阅卷、报表、管理后台联调页面。
 
 部分完成：
 
-- 密码哈希化与密钥安全治理（已支持 BCrypt、默认关闭明文回退并提供迁移开关、JWT 密钥强校验与外置注入；待完成历史账号离线迁移与密钥托管体系化）。
+- 密钥托管体系化（当前已完成 JWT 密钥强校验与外置注入；统一托管与轮换机制待补齐）。
 - 防作弊数据采集与规则引擎（事件采集、风险评分聚合与规则参数配置化已落地；完整防作弊能力仍在演进）。
 - 发布自动化（已补环境模板、部署脚本与基础 smoke-check；待补 CI/CD 流水线托管）。
+- 压测与性能摸底（已提供 `perf/k6/smart-exam-read.js` 读链路压测脚本及样例结果；完整写链路压测与容量规划未完成）。
 
 未完成：
 
 - 自动判题规则引擎化（当前为固定题型规则实现）。
-- 全链路审计日志。
-- 自动化测试体系（API 契约、集成、回归）与契约测试平台化。
-- 全链路压测与容量规划。
+- 全链路审计日志（当前仅 `admin-service` 关键管理操作落库 `sys_audit_log`）。
+- 自动化测试体系（API 契约、集成、回归）与契约测试平台化（当前仓库未接入后端/前端自动化测试用例与 CI 工作流）。

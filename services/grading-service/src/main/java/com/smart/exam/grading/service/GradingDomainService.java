@@ -11,6 +11,11 @@ import com.smart.exam.common.core.error.ErrorCode;
 import com.smart.exam.common.core.event.ExamSubmittedEvent;
 import com.smart.exam.common.core.event.ScorePublishedEvent;
 import com.smart.exam.common.core.id.SnowflakeIdGenerator;
+import com.smart.exam.common.web.audit.AuditActions;
+import com.smart.exam.common.web.audit.AuditLogCommand;
+import com.smart.exam.common.web.audit.AuditLogService;
+import com.smart.exam.common.web.audit.AuditModules;
+import com.smart.exam.common.web.audit.AuditTargetTypes;
 import com.smart.exam.grading.config.RabbitConfig;
 import com.smart.exam.grading.dto.ManualScoreRequest;
 import com.smart.exam.grading.entity.GradingTaskEntity;
@@ -24,6 +29,9 @@ import com.smart.exam.grading.mapper.ResultReleaseMapper;
 import com.smart.exam.grading.model.GradingTask;
 import com.smart.exam.grading.model.GradingTaskStatus;
 import com.smart.exam.grading.model.QuestionScore;
+import com.smart.exam.grading.rule.QuestionAnswerSupport;
+import com.smart.exam.grading.rule.QuestionGradingResult;
+import com.smart.exam.grading.rule.QuestionGradingRuleRegistry;
 import com.smart.exam.grading.model.scoring.AnswerSnapshot;
 import com.smart.exam.grading.model.scoring.ExamSnapshot;
 import com.smart.exam.grading.model.scoring.PaperQuestionDetailSnapshot;
@@ -50,7 +58,6 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -69,7 +76,6 @@ public class GradingDomainService {
     private static final Duration MANUAL_DEDUP_TTL = Duration.ofSeconds(8);
     private static final String EVENT_DEDUP_PREFIX = "grading:event:exam-submitted:";
     private static final String MANUAL_DEDUP_PREFIX = "grading:manual:dedup:";
-    private static final Set<String> OBJECTIVE_TYPES = Set.of("SINGLE", "MULTI", "JUDGE", "FILL");
 
     private final SnowflakeIdGenerator idGenerator;
     private final RabbitTemplate rabbitTemplate;
@@ -80,6 +86,8 @@ public class GradingDomainService {
     private final ResultReleaseMapper resultReleaseMapper;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
+    private final AuditLogService auditLogService;
+    private final QuestionGradingRuleRegistry questionGradingRuleRegistry;
 
     public GradingDomainService(SnowflakeIdGenerator idGenerator,
                                 RabbitTemplate rabbitTemplate,
@@ -89,7 +97,9 @@ public class GradingDomainService {
                                 QuestionReadMapper questionReadMapper,
                                 ResultReleaseMapper resultReleaseMapper,
                                 StringRedisTemplate redisTemplate,
-                                ObjectMapper objectMapper) {
+                                ObjectMapper objectMapper,
+                                AuditLogService auditLogService,
+                                QuestionGradingRuleRegistry questionGradingRuleRegistry) {
         this.idGenerator = idGenerator;
         this.rabbitTemplate = rabbitTemplate;
         this.gradingTaskMapper = gradingTaskMapper;
@@ -99,6 +109,8 @@ public class GradingDomainService {
         this.resultReleaseMapper = resultReleaseMapper;
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
+        this.auditLogService = auditLogService;
+        this.questionGradingRuleRegistry = questionGradingRuleRegistry;
     }
 
     @Transactional
@@ -211,7 +223,12 @@ public class GradingDomainService {
     }
 
     @Transactional
-    public GradingTask manualScore(String taskId, ManualScoreRequest request, String graderId, String role) {
+    public GradingTask manualScore(String taskId,
+                                   ManualScoreRequest request,
+                                   String graderId,
+                                   String role,
+                                   String ip,
+                                   String userAgent) {
         protectDuplicateManualScore(taskId, graderId, request);
 
         Long taskLongId = parseLong("taskId", taskId);
@@ -280,11 +297,43 @@ public class GradingDomainService {
 
         List<QuestionScoreEntity> scoreEntities = loadTaskQuestionScores(taskLongId);
         publishScore(taskEntity, scoreEntities);
+        Map<String, Object> detail = new LinkedHashMap<>();
+        detail.put("examId", String.valueOf(taskEntity.getExamId()));
+        detail.put("sessionId", String.valueOf(taskEntity.getSessionId()));
+        detail.put("studentId", String.valueOf(taskEntity.getUserId()));
+        detail.put("manualQuestionCount", requestScores.size());
+        detail.put("subjectiveScore", subjectiveScore.doubleValue());
+        detail.put("totalScore", safeScore(taskEntity.getTotalScore()).doubleValue());
+        detail.put("scores", requestScores.entrySet().stream().map(entry -> {
+            Map<String, Object> itemPayload = new LinkedHashMap<>();
+            itemPayload.put("questionId", String.valueOf(entry.getKey()));
+            itemPayload.put("gotScore", entry.getValue().getGotScore());
+            itemPayload.put("comment", entry.getValue().getComment());
+            return itemPayload;
+        }).toList());
+        auditLogService.record(
+                AuditLogCommand.builder()
+                        .moduleKey(AuditModules.GRADING)
+                        .operatorId(graderId)
+                        .operatorRole(role)
+                        .action(AuditActions.GRADING_MANUAL_SCORED)
+                        .targetType(AuditTargetTypes.GRADING_TASK)
+                        .targetId(taskId)
+                        .detail(detail)
+                        .ip(ip)
+                        .userAgent(userAgent)
+                        .build()
+        );
         return toTask(taskEntity, scoreEntities);
     }
 
     @Transactional
-    public Map<String, Object> updateExamResultRelease(String examId, boolean released, String operatorId, String role) {
+    public Map<String, Object> updateExamResultRelease(String examId,
+                                                       boolean released,
+                                                       String operatorId,
+                                                       String role,
+                                                       String ip,
+                                                       String userAgent) {
         long examLongId = parseLong("examId", examId);
         ExamSnapshot examSnapshot = examReadMapper.selectExamById(examLongId);
         if (examSnapshot == null) {
@@ -318,6 +367,19 @@ public class GradingDomainService {
         payload.put("releasedAt", entity.getReleasedAt());
         payload.put("releasedBy", entity.getReleasedBy() == null ? null : String.valueOf(entity.getReleasedBy()));
         payload.put("effective", released || hasExamEnded(examSnapshot));
+        auditLogService.record(
+                AuditLogCommand.builder()
+                        .moduleKey(AuditModules.GRADING)
+                        .operatorId(operatorId)
+                        .operatorRole(role)
+                        .action(AuditActions.EXAM_RESULT_RELEASE_UPDATED)
+                        .targetType(AuditTargetTypes.EXAM)
+                        .targetId(examId)
+                        .detail(payload)
+                        .ip(ip)
+                        .userAgent(userAgent)
+                        .build()
+        );
         return payload;
     }
 
@@ -419,7 +481,7 @@ public class GradingDomainService {
             BigDecimal maxScore = scoreEntity == null ? toScore(question.getScore()) : safeScore(scoreEntity.getMaxScore());
             BigDecimal gotScore = scoreEntity == null ? ZERO_SCORE : safeScore(scoreEntity.getGotScore());
             boolean objective = scoreEntity == null
-                    ? isObjectiveType(question.getType())
+                    ? questionGradingRuleRegistry.supports(question.getType())
                     : (scoreEntity.getIsObjective() != null && scoreEntity.getIsObjective() == 1);
 
             Map<String, Object> questionItem = new HashMap<>();
@@ -488,23 +550,23 @@ public class GradingDomainService {
                 throw new BizException(ErrorCode.BAD_REQUEST, "Question snapshot missing");
             }
 
-            boolean objective = isObjectiveType(question.getType());
             BigDecimal maxScore = toScore(paperQuestion.getScore());
+            QuestionGradingResult gradingResult = questionGradingRuleRegistry.grade(
+                    question,
+                    answerMap.get(paperQuestion.getQuestionId()),
+                    maxScore
+            );
             QuestionScoreEntity scoreEntity = new QuestionScoreEntity();
             scoreEntity.setQuestionId(paperQuestion.getQuestionId());
             scoreEntity.setMaxScore(maxScore);
-            scoreEntity.setIsObjective(objective ? 1 : 0);
+            scoreEntity.setIsObjective(gradingResult.objective() ? 1 : 0);
+            scoreEntity.setGotScore(safeScore(gradingResult.gotScore()));
+            scoreEntity.setComment(gradingResult.comment());
 
-            if (objective) {
-                boolean correct = isObjectiveAnswerCorrect(question, answerMap.get(paperQuestion.getQuestionId()));
-                BigDecimal gotScore = correct ? maxScore : ZERO_SCORE;
-                scoreEntity.setGotScore(gotScore);
-                scoreEntity.setComment(correct ? "AUTO_CORRECT" : "AUTO_WRONG");
-                objectiveScore = objectiveScore.add(gotScore);
-            } else {
+            if (gradingResult.manualRequired()) {
                 manualRequired = true;
-                scoreEntity.setGotScore(ZERO_SCORE);
-                scoreEntity.setComment("PENDING_MANUAL");
+            } else if (gradingResult.objective()) {
+                objectiveScore = objectiveScore.add(safeScore(gradingResult.gotScore()));
             }
             scoreEntities.add(scoreEntity);
         }
@@ -536,10 +598,6 @@ public class GradingDomainService {
         }
     }
 
-    private boolean isObjectiveType(String questionType) {
-        return OBJECTIVE_TYPES.contains(normalizeToken(questionType));
-    }
-
     private boolean isTaskScoreComplete(GradingTaskEntity taskEntity) {
         if (taskEntity == null || taskEntity.getId() == null || taskEntity.getExamId() == null) {
             return false;
@@ -556,102 +614,6 @@ public class GradingDomainService {
                         .eq(QuestionScoreEntity::getTaskId, taskEntity.getId())
         );
         return (actualCount == null ? 0L : actualCount) == expectedCount;
-    }
-
-    private boolean isObjectiveAnswerCorrect(QuestionSnapshot question, JsonNode answerNode) {
-        String type = normalizeToken(question.getType());
-        return switch (type) {
-            case "SINGLE" -> isSingleCorrect(question.getAnswer(), answerNode);
-            case "MULTI" -> isMultiCorrect(question.getAnswer(), answerNode);
-            case "JUDGE" -> isJudgeCorrect(question.getAnswer(), answerNode);
-            case "FILL" -> isFillCorrect(question.getAnswer(), answerNode);
-            default -> false;
-        };
-    }
-
-    private boolean isSingleCorrect(String expectedRaw, JsonNode answerNode) {
-        String expected = normalizeToken(expectedRaw);
-        String actual = normalizeToken(extractFirstScalar(answerNode));
-        return StringUtils.hasText(expected) && expected.equals(actual);
-    }
-
-    private boolean isMultiCorrect(String expectedRaw, JsonNode answerNode) {
-        Set<String> expectedSet = splitTokens(expectedRaw);
-        Set<String> actualSet = readMultiAnswerTokens(answerNode);
-        return !expectedSet.isEmpty() && expectedSet.equals(actualSet);
-    }
-
-    private boolean isJudgeCorrect(String expectedRaw, JsonNode answerNode) {
-        Boolean expected = parseBooleanValue(expectedRaw);
-        Boolean actual = parseBooleanValue(extractFirstScalar(answerNode));
-        return expected != null && expected.equals(actual);
-    }
-
-    private boolean isFillCorrect(String expectedRaw, JsonNode answerNode) {
-        String expected = normalizeFillAnswer(expectedRaw);
-        String actual = normalizeFillAnswer(extractFirstScalar(answerNode));
-        return StringUtils.hasText(expected) && expected.equalsIgnoreCase(actual);
-    }
-
-    private Set<String> readMultiAnswerTokens(JsonNode answerNode) {
-        if (answerNode == null || answerNode.isNull()) {
-            return Set.of();
-        }
-        if (answerNode.isArray()) {
-            Set<String> tokens = new HashSet<>();
-            for (JsonNode node : answerNode) {
-                String token = normalizeToken(node == null ? null : node.asText());
-                if (StringUtils.hasText(token)) {
-                    tokens.add(token);
-                }
-            }
-            return tokens;
-        }
-        return splitTokens(extractFirstScalar(answerNode));
-    }
-
-    private Set<String> splitTokens(String rawValue) {
-        if (!StringUtils.hasText(rawValue)) {
-            return Set.of();
-        }
-        String[] parts = rawValue.split("[,，\\s]+");
-        Set<String> tokens = new HashSet<>();
-        for (String part : parts) {
-            String token = normalizeToken(part);
-            if (StringUtils.hasText(token)) {
-                tokens.add(token);
-            }
-        }
-        return tokens;
-    }
-
-    private String extractFirstScalar(JsonNode answerNode) {
-        if (answerNode == null || answerNode.isNull()) {
-            return null;
-        }
-        if (answerNode.isArray()) {
-            if (answerNode.size() == 0) {
-                return null;
-            }
-            return answerNode.get(0).asText();
-        }
-        return answerNode.asText();
-    }
-
-    private Boolean parseBooleanValue(String rawValue) {
-        if (!StringUtils.hasText(rawValue)) {
-            return null;
-        }
-        String normalized = rawValue.trim().toLowerCase(Locale.ROOT);
-        return switch (normalized) {
-            case "true", "1", "t", "yes", "y" -> true;
-            case "false", "0", "f", "no", "n" -> false;
-            default -> null;
-        };
-    }
-
-    private String normalizeFillAnswer(String rawValue) {
-        return rawValue == null ? "" : rawValue.trim();
     }
 
     private String normalizeToken(String rawValue) {
@@ -735,25 +697,10 @@ public class GradingDomainService {
             return "";
         }
         return switch (type) {
-            case "MULTI" -> splitTokensOrdered(rawAnswer);
-            case "JUDGE" -> parseBooleanValue(rawAnswer);
+            case "MULTI" -> QuestionAnswerSupport.splitTokensOrdered(rawAnswer);
+            case "JUDGE" -> QuestionAnswerSupport.parseBooleanValue(rawAnswer);
             default -> rawAnswer.trim();
         };
-    }
-
-    private List<String> splitTokensOrdered(String rawValue) {
-        if (!StringUtils.hasText(rawValue)) {
-            return List.of();
-        }
-        String[] parts = rawValue.split("[,\\uFF0C\\s]+");
-        LinkedHashMap<String, String> dedup = new LinkedHashMap<>();
-        for (String part : parts) {
-            String token = normalizeToken(part);
-            if (StringUtils.hasText(token) && !dedup.containsKey(token)) {
-                dedup.put(token, token);
-            }
-        }
-        return new ArrayList<>(dedup.values());
     }
 
     private void publishScore(GradingTaskEntity taskEntity) {

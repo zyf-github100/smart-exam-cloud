@@ -1,6 +1,7 @@
 package com.smart.exam.exam.controller;
 
 import com.smart.exam.common.core.model.ApiResponse;
+import com.smart.exam.common.web.audit.AuditHttpUtils;
 import com.smart.exam.common.web.security.PermissionCodes;
 import com.smart.exam.common.web.security.RoleGuard;
 import com.smart.exam.exam.dto.CreateExamRequest;
@@ -41,9 +42,16 @@ public class ExamController {
             @Valid @RequestBody CreateExamRequest request,
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-Role", required = false) String role,
-            @RequestHeader(value = "X-Permissions", required = false) String permissions) {
+            @RequestHeader(value = "X-Permissions", required = false) String permissions,
+            HttpServletRequest servletRequest) {
         String operatorId = requireTeacherOrAdmin(userId, role, permissions, PermissionCodes.EXAM_CREATE);
-        return ApiResponse.ok(examDomainService.createExam(request, operatorId, role));
+        return ApiResponse.ok(examDomainService.createExam(
+                request,
+                operatorId,
+                role,
+                AuditHttpUtils.extractClientIp(servletRequest),
+                AuditHttpUtils.extractUserAgent(servletRequest)
+        ));
     }
 
     @PostMapping("/exams/{examId}/start")
@@ -54,8 +62,13 @@ public class ExamController {
             @RequestHeader(value = "X-Permissions", required = false) String permissions,
             HttpServletRequest servletRequest) {
         String studentId = requireStudentOrAdmin(userId, role, permissions, PermissionCodes.EXAM_SESSION_START);
-        String ip = servletRequest.getRemoteAddr();
-        return ApiResponse.ok(examDomainService.startExam(examId, studentId, role, ip));
+        return ApiResponse.ok(examDomainService.startExam(
+                examId,
+                studentId,
+                role,
+                AuditHttpUtils.extractClientIp(servletRequest),
+                AuditHttpUtils.extractUserAgent(servletRequest)
+        ));
     }
 
     @GetMapping({"/students/me/exams", "/exams/students/me"})
@@ -113,9 +126,16 @@ public class ExamController {
             @PathVariable("sessionId") String sessionId,
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-Role", required = false) String role,
-            @RequestHeader(value = "X-Permissions", required = false) String permissions) {
+            @RequestHeader(value = "X-Permissions", required = false) String permissions,
+            HttpServletRequest servletRequest) {
         String studentId = requireStudentOrAdmin(userId, role, permissions, PermissionCodes.EXAM_SESSION_SUBMIT);
-        return ApiResponse.ok(examDomainService.submit(sessionId, studentId));
+        return ApiResponse.ok(examDomainService.submit(
+                sessionId,
+                studentId,
+                role,
+                AuditHttpUtils.extractClientIp(servletRequest),
+                AuditHttpUtils.extractUserAgent(servletRequest)
+        ));
     }
 
     @PostMapping("/sessions/{sessionId}/anti-cheat/events")
@@ -127,8 +147,14 @@ public class ExamController {
             @RequestHeader(value = "X-Permissions", required = false) String permissions,
             HttpServletRequest servletRequest) {
         String studentId = requireStudentOrAdmin(userId, role, permissions, PermissionCodes.EXAM_ANTI_CHEAT_EVENT_REPORT);
-        String ip = servletRequest == null ? null : servletRequest.getRemoteAddr();
-        return ApiResponse.ok(examDomainService.reportAntiCheatEvent(sessionId, studentId, ip, request));
+        return ApiResponse.ok(examDomainService.reportAntiCheatEvent(
+                sessionId,
+                studentId,
+                role,
+                AuditHttpUtils.extractClientIp(servletRequest),
+                AuditHttpUtils.extractUserAgent(servletRequest),
+                request
+        ));
     }
 
     @GetMapping("/sessions/{sessionId}/anti-cheat/risk")

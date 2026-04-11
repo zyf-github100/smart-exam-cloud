@@ -24,6 +24,8 @@ import com.smart.exam.admin.mapper.SysRolePermissionMapper;
 import com.smart.exam.admin.mapper.SysUserMapper;
 import com.smart.exam.common.core.error.BizException;
 import com.smart.exam.common.core.error.ErrorCode;
+import com.smart.exam.common.web.audit.AuditActions;
+import com.smart.exam.common.web.audit.AuditTargetTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -158,7 +160,7 @@ public class AdminService {
         if (StringUtils.hasText(request.getReason())) {
             detail.put("reason", request.getReason().trim());
         }
-        auditService.record(operatorId, operatorRole, "USER_STATUS_UPDATED", "SYS_USER", userId, detail, ip, userAgent);
+        auditService.record(operatorId, operatorRole, AuditActions.USER_STATUS_UPDATED, AuditTargetTypes.SYS_USER, userId, detail, ip, userAgent);
     }
 
     @Transactional
@@ -181,7 +183,7 @@ public class AdminService {
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("beforeRole", beforeRole);
         detail.put("afterRole", normalizedRoleCode);
-        auditService.record(operatorId, operatorRole, "USER_ROLE_UPDATED", "SYS_USER", userId, detail, ip, userAgent);
+        auditService.record(operatorId, operatorRole, AuditActions.USER_ROLE_UPDATED, AuditTargetTypes.SYS_USER, userId, detail, ip, userAgent);
     }
 
     @Transactional
@@ -210,7 +212,7 @@ public class AdminService {
         if (StringUtils.hasText(request.getReason())) {
             detail.put("reason", request.getReason().trim());
         }
-        auditService.record(operatorId, operatorRole, "USER_PASSWORD_RESET", "SYS_USER", userId, detail, ip, userAgent);
+        auditService.record(operatorId, operatorRole, AuditActions.USER_PASSWORD_RESET, AuditTargetTypes.SYS_USER, userId, detail, ip, userAgent);
     }
 
     public List<Map<String, Object>> listRoles() {
@@ -359,8 +361,8 @@ public class AdminService {
         auditService.record(
                 operatorId,
                 operatorRole,
-                "ROLE_PERMISSIONS_UPDATED",
-                "SYS_ROLE",
+                AuditActions.ROLE_PERMISSIONS_UPDATED,
+                AuditTargetTypes.SYS_ROLE,
                 normalizedRoleCode,
                 detail,
                 ip,
@@ -431,10 +433,12 @@ public class AdminService {
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("groupKey", groupKey);
         detail.put("description", trimToNull(request.getDescription()));
-        auditService.record(operatorId, operatorRole, "SYSTEM_CONFIG_UPSERTED", "SYS_CONFIG", normalizedConfigKey, detail, ip, userAgent);
+        auditService.record(operatorId, operatorRole, AuditActions.SYSTEM_CONFIG_UPSERTED, AuditTargetTypes.SYS_CONFIG, normalizedConfigKey, detail, ip, userAgent);
     }
 
-    public Map<String, Object> listAuditLogs(String operatorId,
+    public Map<String, Object> listAuditLogs(String serviceName,
+                                             String moduleKey,
+                                             String operatorId,
                                              String action,
                                              String targetType,
                                              LocalDateTime startTime,
@@ -445,11 +449,11 @@ public class AdminService {
         long safeSize = normalizeSize(size);
         long offset = (safePage - 1) * safeSize;
 
-        Long total = auditLogMapper.selectCount(buildAuditQuery(operatorId, action, targetType, startTime, endTime, false, 0, 0));
+        Long total = auditLogMapper.selectCount(buildAuditQuery(serviceName, moduleKey, operatorId, action, targetType, startTime, endTime, false, 0, 0));
         List<Map<String, Object>> records = List.of();
         if (total != null && total > 0) {
             List<SysAuditLogEntity> entities = auditLogMapper.selectList(
-                    buildAuditQuery(operatorId, action, targetType, startTime, endTime, true, offset, safeSize)
+                    buildAuditQuery(serviceName, moduleKey, operatorId, action, targetType, startTime, endTime, true, offset, safeSize)
             );
             records = entities.stream().map(this::toAuditPayload).toList();
         }
@@ -517,6 +521,8 @@ public class AdminService {
     }
 
     private com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<SysAuditLogEntity> buildAuditQuery(
+            String serviceName,
+            String moduleKey,
             String operatorId,
             String action,
             String targetType,
@@ -527,6 +533,12 @@ public class AdminService {
             long size) {
         var query = Wrappers.lambdaQuery(SysAuditLogEntity.class);
 
+        if (StringUtils.hasText(serviceName)) {
+            query.eq(SysAuditLogEntity::getServiceName, serviceName.trim());
+        }
+        if (StringUtils.hasText(moduleKey)) {
+            query.eq(SysAuditLogEntity::getModuleKey, normalizeCode(moduleKey));
+        }
         if (StringUtils.hasText(operatorId)) {
             query.eq(SysAuditLogEntity::getOperatorId, parseLong("operatorId", operatorId));
         }
@@ -588,6 +600,8 @@ public class AdminService {
     private Map<String, Object> toAuditPayload(SysAuditLogEntity entity) {
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("id", entity.getId() == null ? null : String.valueOf(entity.getId()));
+        payload.put("serviceName", entity.getServiceName());
+        payload.put("moduleKey", entity.getModuleKey());
         payload.put("operatorId", entity.getOperatorId() == null ? null : String.valueOf(entity.getOperatorId()));
         payload.put("operatorRole", entity.getOperatorRole());
         payload.put("action", entity.getAction());
