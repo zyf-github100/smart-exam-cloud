@@ -1,309 +1,142 @@
-﻿# smart-exam-cloud
+# smart-exam-cloud
 
-微服务在线考试系统底层代码（Spring Boot + Spring Cloud 风格多模块）。
+基于 Spring Boot / Spring Cloud 风格实现的微服务在线考试系统，覆盖认证鉴权、题库组卷、考试发布、自动判卷、成绩分析和后台管理等核心场景。
 
-开发与联调说明请查看：`docs/DEVELOPMENT.md`
-接口文档请查看：`docs/API.md`
-产品需求文档请查看：`docs/PRD.md`
-技术架构文档请查看：`docs/ARCHITECTURE.md`
+- 后端：Spring Boot 3、Spring Cloud Gateway、Spring Cloud Alibaba Nacos、MyBatis-Plus
+- 中间件：MySQL、Redis、RabbitMQ、Nacos
+- 前端：Vue 3、Vite、Element Plus、ECharts
 
-## 1. 项目结构
+## 文档导航
+
+- 开发与联调：[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+- 接口文档：[docs/API.md](docs/API.md)
+- 产品需求：[docs/PRD.md](docs/PRD.md)
+- 技术架构：[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- Nacos 配置导入：[docs/nacos/README.md](docs/nacos/README.md)
+- 审计日志说明：[docs/AUDIT_LOGGING.md](docs/AUDIT_LOGGING.md)
+- 历史密码迁移：[docs/password-migration.md](docs/password-migration.md)
+
+## 模块结构
 
 ```text
 smart-exam-cloud/
   pom.xml
   common/
-    common-core/      # 统一响应、错误码、雪花ID、事件模型
-    common-web/       # 全局异常处理
-    common-security/  # JWT 工具
+    common-core/      # 错误码、统一响应、雪花 ID、事件模型
+    common-web/       # Web 通用能力、全局异常、审计日志组件
+    common-security/  # JWT 与安全相关能力
   services/
-    gateway-service/
-    auth-service/
-    user-service/
-    question-service/
-    exam-service/
-    grading-service/
-    analysis-service/
-    admin-service/
-  docs/
-    nacos/
-      common.yaml
-      *.yaml
-    sql/
-      01_init_databases.sql
-      02_core_tables.sql
-      03_seed_java_questions_100.sql
-      04_seed_users_120.sql
-      05_seed_teacher_question_banks_20x200.sql
-  docker-compose.yml
+    gateway-service/  # 网关与统一鉴权
+    auth-service/     # 认证与权限装配
+    user-service/     # 用户信息
+    question-service/ # 题库与试卷
+    exam-service/     # 考试、会话、防作弊
+    grading-service/  # 自动判卷与人工评分
+    analysis-service/ # 成绩统计与报表
+    admin-service/    # 管理后台、配置、审计
+  smart-exam-web/     # 前端控制台
+  docs/               # 开发、架构、接口、SQL、Nacos 模板
+  scripts/            # 启动、校验、部署、安全脚本
+  docker-compose.yml  # 本地中间件编排
 ```
 
-## 2. 当前状态（已升级）
+## 当前能力
 
-所有业务服务已从内存存储升级为 `MyBatis-Plus + MySQL + Redis`。
+- 统一网关鉴权，支持 JWT、角色与权限码透传
+- 基于 MySQL + Redis 的用户、题库、考试、阅卷、分析、管理多库模型
+- 教师题库隔离、试卷组装、考试发布与学生会话控制
+- 客观题自动判分、简答题人工评分、成绩开放与解析查看
+- 成绩单、分数分布、题目正确率 TopN 等分析报表
+- 防作弊事件采集、风险评分聚合与规则参数配置化
+- 管理员中心支持用户治理、角色权限、系统配置与审计日志
+- 提供基础 CI 校验、后端单测与前端 Vitest 测试能力
 
-- 网关 `gateway-service`
-  - 路由转发（按 `/api/v1/**`）
-  - JWT 全局鉴权过滤器
-  - 请求头注入：`X-User-Id`、`X-Role`、`X-Permissions`
+## 快速开始
 
-- 认证 `auth-service`（`user_db` + Redis）
-  - `POST /api/v1/auth/login`
-  - `POST /api/v1/auth/logout`
-  - 登录响应与 JWT claim 携带权限码集合（`permissions`）
-  - 权限来源优先读取角色权限矩阵（`admin_db.sys_role_permission`），读取失败时按角色默认权限回退
-  - 账号来源：`sys_user`
-  - 密码策略：仅接受 BCrypt 密码；服务启动时会拒绝历史明文密码记录与遗留迁移开关
-  - JWT 密钥：必须通过 `JWT_SECRET` 注入（明文或 Base64，解码后至少 32 字节）
-  - 测试账号依赖 SQL 初始化或种子数据导入；生产默认不会自动补齐演示账号
-  - 仅本地开发需要时，可通过 `BOOTSTRAP_DEMO_USERS=true` 临时开启演示账号补齐能力
+### 1. 环境要求
 
-- 用户 `user-service`（`user_db` + Redis）
-  - `GET /api/v1/users/me`
-  - `GET /api/v1/users/{id}`
-  - `GET /api/v1/users`
-  - 已接入接口级细粒度 RBAC（角色 + 权限码）
-
-- 题库 `question-service`（`question_db` + Redis）
-  - `POST /api/v1/questions`
-  - `GET /api/v1/questions`
-  - `GET /api/v1/questions/{questionId}`
-  - `POST /api/v1/papers`
-  - `GET /api/v1/papers`（支持 `keyword/page/size`，用于按名称检索试卷）
-  - `GET /api/v1/papers/{paperId}`
-  - 出题校验：教师必须提供标准答案；选择题答案需命中选项；判断题标准化为 `true/false`
-  - 题库隔离：教师仅可查看/使用自己创建的题目与试卷；管理员可全量查看
-  - 组卷校验：题目不可重复，且题型顺序强约束为 `SINGLE/MULTI -> JUDGE -> FILL -> SHORT`
-  - 已接入接口级细粒度 RBAC（角色 + 权限码）
-
-- 考试 `exam-service`（`exam_db` + Redis + RabbitMQ）
-  - `POST /api/v1/exams`
-  - `GET /api/v1/exams/teachers/me`（老师查看自己已发布考试）
-  - `GET /api/v1/exams/students/me`（学生查看我的考试，兼容旧路径 `/api/v1/students/me/exams`）
-  - `POST /api/v1/exams/{examId}/start`
-  - `GET /api/v1/sessions/{sessionId}/paper`（返回会话试卷题面，不含标准答案）
-  - `GET /api/v1/sessions/{sessionId}/answers`（读取会话历史作答）
-  - `PUT /api/v1/sessions/{sessionId}/answers`
-  - `POST /api/v1/sessions/{sessionId}/submit`
-  - `POST /api/v1/sessions/{sessionId}/anti-cheat/events`（防作弊事件上报，第一批）
-  - `GET /api/v1/sessions/{sessionId}/anti-cheat/risk`（会话风险详情）
-  - `GET /api/v1/exams/{examId}/anti-cheat/risks`（按考试查看风险分页）
-  - 发布机制：考试创建必须携带 `studentIds`，发布关系落库 `e_exam_target`
-  - 答卷校验：仅允许保存当前试卷内题目，且按题型校验答案格式
-  - 会话约束：同一学生同一考试仅允许一个会话；已提交/已自动交卷后禁止再次开考
-  - 截止约束：考试截止后禁止继续保存答案；提交时间以考试结束时间为上限
-  - 超时托底：考试结束后仍为 `IN_PROGRESS` 的会话会被调度自动转为 `FORCE_SUBMITTED` 并触发判卷
-  - 提交一致性：交卷与 `exam.submitted` 事件发布在同事务内，MQ 不可用时提交会失败并回滚
-  - 权限约束：教师仅可查看自己创建考试的防作弊风险数据
-  - 考试状态自动流转：`NOT_STARTED -> RUNNING -> FINISHED`
-  - 防作弊第一批：事件采集 + 风险评分聚合（`LOW/MEDIUM/HIGH/CRITICAL`）
-  - 防作弊第二批：规则参数支持 `smart-exam.exam.anti-cheat.*` 配置化（Nacos）
-  - 已接入接口级细粒度 RBAC（角色 + 权限码）
-
-- 判卷 `grading-service`（`grading_db` + Redis + RabbitMQ）
-  - 监听 `exam.submitted.q`
-  - 基于考生答案与标准答案进行客观题自动判分（`SINGLE/MULTI/JUDGE/FILL`）
-  - 按试卷题目明细生成 `g_question_score`，简答题（`SHORT`）固定进入人工评分
-  - `GET /api/v1/grading/tasks`
-  - `POST /api/v1/grading/tasks/{taskId}/manual-score`
-  - `GET /api/v1/grading/exams/{examId}/result-release`
-  - `PUT /api/v1/grading/exams/{examId}/result-release`
-  - `GET /api/v1/grading/sessions/{sessionId}/result`（学生查看本人会话成绩与解析）
-  - 权限约束：教师仅可查询和评分自己创建考试产生的阅卷任务
-  - 成绩解析开放规则：考试结束后自动开放；考试未结束时可由老师手动提前开放
-  - 重复/异常恢复：已完成任务会重发成绩事件；检测到不完整任务会清理并重建
-  - 发布携带每题得分明细的 `score.published` 事件
-  - 已接入接口级细粒度 RBAC（角色 + 权限码）
-
-- 分析 `analysis-service`（`analysis_db` + Redis + RabbitMQ）
-  - 监听 `score.published.q`
-  - 沉淀会话-题目得分快照（`a_session_question_score`）
-  - `GET /api/v1/reports/exams/{examId}/score-distribution`
-  - `GET /api/v1/reports/exams/{examId}/score-sheet`（老师查看成绩单，支持 `keyword/limit`）
-  - `GET /api/v1/reports/exams/{examId}/question-accuracy-top`（基于真实判分结果聚合）
-  - 权限约束：教师仅可查看自己创建考试的统计报表
-  - 已接入接口级细粒度 RBAC（角色 + 权限码）
-
-- 管理 `admin-service`（`user_db + admin_db` + Redis）
-  - `GET /api/v1/admin/overview`
-  - `GET /api/v1/admin/users`
-  - `PUT /api/v1/admin/users/{userId}/status`
-  - `PUT /api/v1/admin/users/{userId}/role`
-  - `PUT /api/v1/admin/users/{userId}/password/reset`
-  - `GET /api/v1/admin/roles`
-  - `GET /api/v1/admin/permissions`
-  - `PUT /api/v1/admin/roles/{roleCode}/permissions`
-  - `GET /api/v1/admin/configs`
-  - `PUT /api/v1/admin/configs/{configKey}`
-  - `GET /api/v1/admin/audits`
-  - 密码重置策略：新密码需满足强度要求（8~64 位，包含大小写字母、数字、特殊字符）
-
-## 3. 本地启动
-
-## 3.1 环境要求
-
-- JDK 17（必须）
+- JDK 17
 - Maven 3.9+
+- Node.js 20+
 - Docker / Docker Compose
 
-## 3.2 启动中间件
+### 2. 启动中间件
 
-先复制环境模板并填入强密码：
+先准备环境文件：
 
 ```bash
 cp .env.example .env
 cp .env.runtime.example .env.runtime
 ```
 
-`.env` 用于 Docker 中间件口令与端口，`.env.runtime` 用于业务服务运行时连接信息。
+再启动本地中间件：
 
 ```bash
 docker compose up -d
 ```
 
-Nacos 2.x 除了 `8848` 外，还需要暴露 gRPC 端口 `9848`、`9849` 供 Java 客户端连接。
-可用以下命令快速确认：
+默认会使用：
+
+- MySQL：`3306`
+- Redis：`6379`
+- RabbitMQ：`5672`
+- RabbitMQ 管理台：`15672`
+- Nacos：`8848`（同时暴露 `9848`、`9849`）
+
+### 3. 初始化数据库与 Nacos
+
+- 数据库初始化脚本：`docs/sql/`
+- Nacos 配置模板：`docs/nacos/`
+- 详细导入步骤：见 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) 和 [docs/nacos/README.md](docs/nacos/README.md)
+
+### 4. 启动后端服务
+
+推荐顺序：
+
+1. `auth-service`
+2. `user-service`
+3. `question-service`
+4. `exam-service`
+5. `grading-service`
+6. `analysis-service`
+7. `admin-service`
+8. `gateway-service`
+
+可直接在项目根目录执行：
 
 ```bash
-docker compose ps nacos
+mvn -f services/auth-service/pom.xml -am spring-boot:run
 ```
 
-## 3.3 初始化数据库
+也可以使用脚本：
 
-注意：当前 `docker-compose.yml` 未挂载 `docs/sql` 到 MySQL 初始化目录，需手动执行 SQL。
+```powershell
+.\scripts\dev\run-service.ps1 auth-service
+```
 
-执行 SQL 时请显式使用 `mysql --default-character-set=utf8mb4`。
-如果你在 Windows PowerShell 中导入，不要使用 `Get-Content ... | mysql` 管道，否则中文种子数据可能被写成乱码；具体命令见 `docs/DEVELOPMENT.md`。
+服务会优先读取项目根目录的 `.env.runtime` 作为运行时连接配置。
 
-如果管理员后台的角色/权限中文已经出现乱码，可执行 `docs/sql/06_fix_admin_metadata_encoding.sql` 修复现有数据。
-
-- 建议每次 schema 有变更后重跑：
-  - `docs/sql/01_init_databases.sql`
-  - `docs/sql/02_core_tables.sql`
-- 可选压测/演示数据：
-  - `docs/sql/03_seed_java_questions_100.sql`
-  - `docs/sql/04_seed_users_120.sql`
-  - `docs/sql/05_seed_teacher_question_banks_20x200.sql`
-
-`02_core_tables.sql` 默认会初始化 `admin`、`teacher001`、`student001` 三个测试账号。
-执行 `04_seed_users_120.sql` 后，会继续补齐 `teacher001~teacher020` 与 `student001~student100`。
-
-## 3.4 初始化 Nacos 配置中心
-
-项目已接入 Nacos 服务发现 + 配置中心。服务启动时会加载：
-
-- `common.yaml`
-- `${spring.application.name}.yaml`
-
-请先在 Nacos 中导入 `docs/nacos/` 下模板文件，详情见：
-
-- `docs/nacos/README.md`
-
-默认 Nacos 地址为 `127.0.0.1:8848`，可通过环境变量覆盖：
-
-- `NACOS_SERVER_ADDR`
-- `NACOS_USERNAME`
-- `NACOS_PASSWORD`
-- `NACOS_GROUP`
-- `NACOS_NAMESPACE`
-- `MYSQL_HOST` / `MYSQL_PORT`（推荐优先覆盖主机与端口；各服务模板会保留自己的数据库名）
-- `MYSQL_URL`（可选；仅在需要一次性覆盖完整 JDBC URL 时使用）
-- `MYSQL_USERNAME` / `MYSQL_PASSWORD`
-- `REDIS_HOST` / `REDIS_PORT` / `REDIS_PASSWORD`
-- `RABBITMQ_HOST` / `RABBITMQ_PORT` / `RABBITMQ_USERNAME` / `RABBITMQ_PASSWORD`
-- `NACOS_AUTH_ENABLE`（`.env`，建议保持 `true`）
-- `NACOS_AUTH_TOKEN`（`.env`，Base64 编码且原始密钥至少 32 字节）
-- `NACOS_AUTH_IDENTITY_KEY` / `NACOS_AUTH_IDENTITY_VALUE`（`.env`，用于 Nacos Server 间身份校验）
-- `NACOS_AUTH_TOKEN_EXPIRE_SECONDS`（`.env`，可选，默认 `18000`）
-- `JWT_SECRET`（必填，至少 32 字节，支持明文或 Base64）
-- `BOOTSTRAP_DEMO_USERS`（可选，默认 `false`；仅建议本地开发临时开启）
-
-如果需要把 Nacos 控制台暴露到外网，务必同时满足：
-
-- 保持 `NACOS_AUTH_ENABLE=true`
-- 不要继续使用默认 `nacos/nacos`
-- 仅放行 `8848/9848/9849` 给受控来源
-
-未设置 `JWT_SECRET` 或使用不合规密钥时，`auth-service/gateway-service` 会在启动阶段直接失败。
-历史明文密码迁移请使用离线工具，执行步骤见 [docs/password-migration.md](docs/password-migration.md)。
-
-## 3.5 编译
+### 5. 启动前端
 
 ```bash
-mvn clean package -DskipTests
+cd smart-exam-web
+npm install
+npm run dev
 ```
 
-生产部署前建议至少执行一次最小构建校验：
+默认访问地址：
 
-```bash
-npm --prefix smart-exam-web run build
-```
+- 前端：`http://localhost:5173`
+- 网关：`http://localhost:9000`
 
-版本化部署与 smoke-check 入口见：
+## 本地联调建议
 
-- `scripts/deploy/README.md`
+- 修改中间件地址时，优先改 `.env.runtime`，不要直接改 `docs/nacos/*.yaml` 模板
+- `JWT_SECRET` 必须显式配置，且解码后至少 32 字节
+- 历史明文密码迁移已收口为离线工具流程，不再推荐通过运行期开关兼容
+- 如果需要更完整的排障、联调和验证步骤，请直接看 [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
 
-## 3.6 逐个启动服务
+## 说明
 
-建议顺序：
-
-1. `auth-service`（9001）
-2. `user-service`（9100）
-3. `question-service`（9210）
-4. `exam-service`（9300）
-5. `grading-service`（9400）
-6. `analysis-service`（9500）
-7. `admin-service`（9600）
-8. `gateway-service`（9000）
-
-## 4. 快速联调
-
-## 4.1 登录获取 token
-
-以下示例默认你已执行 `docs/sql/02_core_tables.sql` 或导入了测试种子数据。
-
-```bash
-curl -X POST http://localhost:9000/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d "{\"username\":\"student001\",\"password\":\"123456\"}"
-```
-
-## 4.2 带 token 请求
-
-```bash
-curl http://localhost:9000/api/v1/users/me \
-  -H "Authorization: Bearer <token>"
-```
-
-## 5. 说明
-
-- Redis 当前用于防重、幂等与热点缓存。
-- RabbitMQ 用于 `exam -> grading -> analysis` 事件链路。
-- Nacos 用于服务注册发现与统一配置管理。
-- SQL 已包含必要索引与唯一约束（含 `e_exam_target(exam_id,student_id)` 发布去重、`e_exam_session(exam_id,user_id)` 会话唯一、事件落库去重相关约束）。
-
-## 6. 迭代进度（截至 2026-04-12，按仓库现状核对）
-
-已完成：
-
-- 管理员中心（用户治理、角色权限、系统配置、审计日志）。
-- MQ 可靠投递与消费失败治理（重试、DLQ）。
-- 考试状态自动流转、真实客观判题与题目正确率统计链路。
-- 网关之外业务服务的接口级 RBAC（除 `admin-service`）。
-- 老师成绩单查询（`/reports/exams/{examId}/score-sheet`）。
-- 交卷-判卷链路一致性修复（提交失败回滚、判卷任务自愈）。
-- 学生端成绩与解析查看、老师按考试开放解析能力（`/grading/**/result*`）。
-- 前端控制台已覆盖连接、题库、试卷、考试、阅卷、报表、管理后台联调页面。
-
-部分完成：
-
-- 密钥托管体系化（当前已完成 JWT 密钥强校验与外置注入；统一托管与轮换机制待补齐）。
-- 防作弊数据采集与规则引擎（事件采集、风险评分聚合与规则参数配置化已落地；完整防作弊能力仍在演进）。
-- 发布自动化（已补环境模板、部署脚本与基础 smoke-check；待补 CI/CD 流水线托管）。
-- 压测与性能摸底（已提供 `perf/k6/smart-exam-read.js` 读链路压测脚本及样例结果；完整写链路压测与容量规划未完成）。
-
-未完成：
-
-- 自动判题规则引擎化（当前为固定题型规则实现）。
-- 全链路审计日志（当前仅 `admin-service` 关键管理操作落库 `sys_audit_log`）。
-- 自动化测试体系（API 契约、集成、回归）与契约测试平台化（当前仓库未接入后端/前端自动化测试用例与 CI 工作流）。
+- README 只保留项目入口信息与最短启动路径
+- 详细业务规则、接口约束、架构设计和运维步骤统一维护在 `docs/` 下
