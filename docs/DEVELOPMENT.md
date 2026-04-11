@@ -184,7 +184,23 @@ docker exec -i smart-exam-mysql mysql --default-character-set=utf8mb4 -uroot -pr
 mvn clean package -DskipTests
 ```
 
-### 8.2 推荐启动顺序
+### 8.2 本地校验（推荐）
+
+如需按仓库当前 CI 基线执行一次完整校验，可在项目根目录运行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\ci\verify.ps1
+```
+
+Linux/macOS 也可使用：
+
+```bash
+bash ./scripts/ci/verify.sh
+```
+
+该脚本会串行执行后端 Maven 校验与前端安装/测试/构建，适合提交前自检。
+
+### 8.3 推荐启动顺序
 
 1. `auth-service` (`9001`)
 2. `user-service` (`9100`)

@@ -1136,6 +1136,8 @@
 | `operatorId` | `string` | 否 | 操作人 ID |
 | `action` | `string` | 否 | 操作类型 |
 | `targetType` | `string` | 否 | 目标类型 |
+| `serviceName` | `string` | 否 | 写入服务名，例如 `exam-service` |
+| `moduleKey` | `string` | 否 | 业务模块标识，例如 `EXAM_SESSION` |
 | `startTime` | `string(datetime)` | 否 | ISO-8601 时间，例如 `2026-03-13T09:00:00` |
 | `endTime` | `string(datetime)` | 否 | ISO-8601 时间 |
 | `page` | `integer` | 否 | 默认 `1` |
@@ -1155,6 +1157,8 @@
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
 | `id` | `string` | 审计 ID |
+| `serviceName` | `string` | 写入服务名 |
+| `moduleKey` | `string` | 业务模块标识 |
 | `operatorId` | `string` | 操作人 ID |
 | `operatorRole` | `string` | 操作人角色 |
 | `action` | `string` | 操作类型 |

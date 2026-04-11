@@ -130,13 +130,13 @@ flowchart LR
 
 - 管理员域统一入口：用户治理、角色权限、系统配置、审计检索。
 - 维护角色-权限矩阵（`sys_role`、`sys_permission`、`sys_role_permission`）。
-- 记录高风险操作审计日志（`sys_audit_log`）。
+- 管理员侧通过 `GET /api/v1/admin/audits` 提供统一审计检索；`common-web` 公共审计组件会把 `admin/question/exam/grading` 关键动作落库到 `admin_db.sys_audit_log`。
 - 提供运营总览聚合指标与短 TTL 缓存。
 
 ### 4.9 common 模块
 
 - `common-core`：统一响应、错误码、雪花 ID、事件模型。
-- `common-web`：全局异常处理。
+- `common-web`：全局异常处理、审计日志公共组件。
 - `common-security`：JWT 工具与自动装配。
 
 ## 5. API 与网关路由
@@ -165,7 +165,7 @@ flowchart LR
 - `exam_db`：`e_exam`、`e_exam_target`、`e_exam_session`、`e_answer`、`e_session_risk_event`、`e_session_risk_summary`
 - `grading_db`：`g_grading_task`、`g_question_score`、`g_result_release`
 - `analysis_db`：`a_score`、`a_session_question_score`
-- `admin_db`：`sys_role`、`sys_permission`、`sys_role_permission`、`sys_audit_log`、`sys_config`
+- `admin_db`：`sys_role`、`sys_permission`、`sys_role_permission`、`sys_audit_log`、`sys_config`（其中 `sys_audit_log` 汇总多服务关键审计事件）
 
 关键约束：
 
@@ -326,9 +326,9 @@ P1：
 
 P2：
 
-- 全链路审计日志。[未完成，当前仅 admin 域关键管理操作写入 `sys_audit_log`]
+- 跨服务关键操作审计日志。[部分完成，2026-04-12：`common-web` 公共审计组件已覆盖 `admin/question/exam/grading` 关键动作，并统一写入 `sys_audit_log`；`user/analysis` 等剩余链路按需继续扩展]
 - 全链路压测与容量规划。[部分完成，2026-03-15：已补 `perf/k6/smart-exam-read.js` 读链路压测脚本与样例结果；完整写链路与容量规划未完成]
-- 完整自动化测试体系与契约测试平台化。[未完成]
+- 自动化测试与 CI 基线。[部分完成，2026-04-12：已接入 GitHub Actions、`scripts/ci/verify.*`、Maven Surefire 与前端 Vitest；契约测试与更完整回归体系仍待补齐]
 
 ## 14. 关联文档
 

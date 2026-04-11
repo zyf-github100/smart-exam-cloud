@@ -17,11 +17,11 @@
 
 初始化建表定义：
 
-- [docs/sql/02_core_tables.sql](/D:/javacode/smart-exam-cloud/docs/sql/02_core_tables.sql)
+- [docs/sql/02_core_tables.sql](sql/02_core_tables.sql)
 
 存量库迁移脚本：
 
-- [docs/sql/07_extend_sys_audit_log.sql](/D:/javacode/smart-exam-cloud/docs/sql/07_extend_sys_audit_log.sql)
+- [docs/sql/07_extend_sys_audit_log.sql](sql/07_extend_sys_audit_log.sql)
 
 审计表统一写入 `admin_db.sys_audit_log`，新增两列用于区分来源：
 
