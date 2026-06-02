@@ -1,6 +1,7 @@
 param(
     [Parameter(Mandatory = $true)]
-    [string]$Service
+    [string]$Service,
+    [switch]$SkipInstall
 )
 
 $ErrorActionPreference = "Stop"
@@ -25,7 +26,10 @@ Get-Content $runtimeFile | ForEach-Object {
 
 Push-Location $root
 try {
-    mvn -f "services/$Service/pom.xml" -am spring-boot:run
+    if (-not $SkipInstall) {
+        mvn -pl "services/$Service" -am install -DskipTests
+    }
+    mvn -f "services/$Service/pom.xml" spring-boot:run
 }
 finally {
     Pop-Location
