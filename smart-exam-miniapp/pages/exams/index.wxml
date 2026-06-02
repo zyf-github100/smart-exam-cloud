@@ -1,0 +1,88 @@
+<view class="page-shell">
+  <view class="hero-card">
+    <text class="hero-kicker">Student Console</text>
+    <text class="hero-title">{{displayName}}</text>
+    <text class="hero-desc">查看老师发布给当前账号的考试，支持开始、继续和查看成绩。</text>
+  </view>
+
+  <view class="panel-card">
+    <view class="row-between">
+      <view>
+        <text class="section-title">考试概览</text>
+        <text class="section-subtitle">当前账号：{{usernameText}}</text>
+      </view>
+      <button class="secondary-btn mini-btn" bindtap="logout">退出登录</button>
+    </view>
+
+    <view class="metrics-grid">
+      <view class="metric-item">
+        <text class="metric-label">总考试数</text>
+        <text class="metric-value">{{totalCount}}</text>
+      </view>
+      <view class="metric-item">
+        <text class="metric-label">进行中</text>
+        <text class="metric-value">{{runningCount}}</text>
+      </view>
+      <view class="metric-item">
+        <text class="metric-label">已提交</text>
+        <text class="metric-value">{{submittedCount}}</text>
+      </view>
+    </view>
+
+    <view class="btn-group">
+      <button class="secondary-btn" loading="{{loading}}" bindtap="loadPageData">刷新列表</button>
+      <button class="primary-btn" bindtap="goLogin">切换账号</button>
+    </view>
+  </view>
+
+  <view wx:if="{{loading && !examItems.length}}" class="empty-card">
+    <text class="empty-text">正在加载考试列表...</text>
+  </view>
+
+  <view wx:elif="{{!examItems.length}}" class="empty-card">
+    <text class="section-title">暂无考试</text>
+    <text class="section-subtitle">当前学生还没有被分配考试，或考试尚未同步到当前环境。</text>
+  </view>
+
+  <view wx:else class="stack">
+    <view wx:for="{{examItems}}" wx:key="examId" class="exam-card">
+      <view class="row-between">
+        <text class="exam-title">{{item.title}}</text>
+        <text class="status-badge {{item.statusClass}}">{{item.statusText}}</text>
+      </view>
+
+      <view class="info-row">
+        <text>考试 ID：{{item.examId}}</text>
+      </view>
+      <view class="info-row">
+        <text>时间：{{item.timeRangeText}}</text>
+      </view>
+      <view class="info-row">
+        <text>会话状态：{{item.sessionStatusText}}</text>
+        <text wx:if="{{item.sessionId}}">会话：{{item.sessionId}}</text>
+      </view>
+
+      <view class="btn-group">
+        <button
+          class="primary-btn"
+          disabled="{{item.actionMode === 'disabled'}}"
+          loading="{{actionLoadingExamId === item.examId}}"
+          bindtap="openExam"
+          data-exam-id="{{item.examId}}"
+          data-session-id="{{item.sessionId}}"
+          data-action-mode="{{item.actionMode}}"
+        >
+          {{item.actionText}}
+        </button>
+        <button
+          wx:if="{{item.actionMode === 'result' && item.sessionId}}"
+          class="secondary-btn"
+          bindtap="openResult"
+          data-session-id="{{item.sessionId}}"
+        >
+          查看成绩
+        </button>
+      </view>
+    </view>
+  </view>
+</view>

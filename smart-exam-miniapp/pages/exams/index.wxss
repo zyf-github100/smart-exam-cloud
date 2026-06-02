@@ -1,0 +1,12 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.secondary-btn[size='mini'] {
+  width: auto;
+  min-height: 64rpx;
+  line-height: 64rpx;
+  padding: 0 24rpx;
+}

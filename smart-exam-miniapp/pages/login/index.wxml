@@ -1,0 +1,47 @@
+<view class="page-shell">
+  <view class="hero-card">
+    <text class="hero-kicker">Smart Exam Cloud</text>
+    <text class="hero-title">学生考试小程序</text>
+    <text class="hero-desc">使用学生账号登录，进入考试列表、在线作答和成绩解析流程。</text>
+  </view>
+
+  <view class="panel-card">
+    <text class="section-title">账号登录</text>
+    <text class="section-subtitle">当前版本复用后端 JWT 登录接口，仅开放学生端使用。</text>
+
+    <view class="top-gap">
+      <text class="field-label">用户名</text>
+      <input
+        class="text-input"
+        type="text"
+        placeholder="请输入学生账号"
+        value="{{username}}"
+        bindinput="onUsernameInput"
+      />
+    </view>
+
+    <view class="top-gap">
+      <text class="field-label">密码</text>
+      <input
+        class="text-input"
+        password="true"
+        placeholder="请输入密码"
+        value="{{password}}"
+        bindinput="onPasswordInput"
+      />
+    </view>
+
+    <view class="top-gap">
+      <button class="primary-btn" loading="{{loading}}" bindtap="submitLogin">登录并进入考试列表</button>
+    </view>
+
+    <view class="top-gap">
+      <text class="tiny-text">接口地址：{{apiBaseUrl}}</text>
+    </view>
+  </view>
+
+  <view class="empty-card">
+    <text class="section-title">联调提示</text>
+    <text class="section-subtitle">如无法登录，请确认网关地址、学生账号状态、JWT 配置和小程序网络域名设置。</text>
+  </view>
+</view>
