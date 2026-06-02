@@ -1,0 +1,4 @@
+.choice-label radio,
+.choice-label checkbox {
+  margin-right: 14rpx;
+}

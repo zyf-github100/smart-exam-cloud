@@ -1,0 +1,6 @@
+.secondary-btn[size='mini'] {
+  width: auto;
+  min-height: 64rpx;
+  line-height: 64rpx;
+  padding: 0 24rpx;
+}

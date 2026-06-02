@@ -1,0 +1,79 @@
+<view class="page-shell">
+  <view class="hero-card">
+    <text class="hero-kicker">Result View</text>
+    <text class="hero-title">成绩与解析</text>
+    <text class="hero-desc">会话 ID：{{sessionId}}</text>
+  </view>
+
+  <view class="panel-card">
+    <view class="row-between">
+      <view>
+        <text class="section-title">结果状态</text>
+        <text class="section-subtitle">支持评阅中、成绩已出和解析未开放状态展示。</text>
+      </view>
+      <button class="secondary-btn mini-btn" loading="{{loading}}" bindtap="loadResult">刷新</button>
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="empty-card">
+    <text class="empty-text">正在加载成绩结果...</text>
+  </view>
+
+  <view wx:elif="{{!ready}}" class="result-card">
+    <text class="section-title">成绩评阅中</text>
+    <text class="section-subtitle">{{waitingMessage}}</text>
+    <view class="divider"></view>
+    <text class="result-text">任务状态：{{taskStatus}}</text>
+    <button class="secondary-btn top-gap" bindtap="backToExams">返回考试列表</button>
+  </view>
+
+  <view wx:else>
+    <view class="panel-card">
+      <text class="section-title">成绩总览</text>
+      <view class="metrics-grid">
+        <view class="metric-item">
+          <text class="metric-label">客观题</text>
+          <text class="metric-value">{{objectiveScore}}</text>
+        </view>
+        <view class="metric-item">
+          <text class="metric-label">主观题</text>
+          <text class="metric-value">{{subjectiveScore}}</text>
+        </view>
+        <view class="metric-item">
+          <text class="metric-label">总分</text>
+          <text class="metric-value">{{totalScore}}</text>
+        </view>
+      </view>
+
+      <view wx:if="{{detailReleased === false}}" class="result-warning">
+        {{detailMessage}}
+      </view>
+    </view>
+
+    <view wx:if="{{!questionItems.length}}" class="empty-card">
+      <text class="empty-text">当前暂无题目成绩详情。</text>
+    </view>
+
+    <view wx:else class="result-questions">
+      <view wx:for="{{questionItems}}" wx:key="questionId" class="question-card">
+        <view class="row-between">
+          <text class="question-title">第 {{item.orderNo}} 题 · {{item.typeLabel}}</text>
+          <text class="status-badge {{item.correctnessClass}}">{{item.scoreText}}</text>
+        </view>
+
+        <view class="question-desc">{{item.stem}}</view>
+        <view class="top-gap">
+          <text class="hint-text">我的答案：{{item.myAnswerText}}</text>
+        </view>
+        <view class="top-gap">
+          <text class="hint-text">标准答案：{{item.standardAnswerText}}</text>
+        </view>
+        <view class="top-gap">
+          <text class="hint-text">解析：{{item.analysisText}}</text>
+        </view>
+      </view>
+    </view>
+
+    <button class="secondary-btn top-gap" bindtap="backToExams">返回考试列表</button>
+  </view>
+</view>

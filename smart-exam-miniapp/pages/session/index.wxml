@@ -1,0 +1,118 @@
+<view class="page-shell">
+  <view class="hero-card">
+    <text class="hero-kicker">Exam Session</text>
+    <text class="hero-title">{{paperName}}</text>
+    <text class="hero-desc">当前会话：{{sessionId}}<text wx:if="{{countdownText}}"> · 剩余时间：{{countdownText}}</text></text>
+  </view>
+
+  <view class="panel-card">
+    <text class="section-title">作答概览</text>
+    <text class="section-subtitle">{{paperDesc}}</text>
+
+    <view class="metrics-grid">
+      <view class="metric-item">
+        <text class="metric-label">题目总数</text>
+        <text class="metric-value">{{totalCount}}</text>
+      </view>
+      <view class="metric-item">
+        <text class="metric-label">已作答</text>
+        <text class="metric-value">{{answeredCount}}</text>
+      </view>
+      <view class="metric-item">
+        <text class="metric-label">总分</text>
+        <text class="metric-value">{{totalScore}}</text>
+      </view>
+    </view>
+
+    <view class="info-row">
+      <text>保存状态：{{saveHint}}</text>
+    </view>
+  </view>
+
+  <view wx:if="{{loading}}" class="empty-card">
+    <text class="empty-text">正在加载试卷...</text>
+  </view>
+
+  <view wx:elif="{{!questions.length}}" class="empty-card">
+    <text class="empty-text">当前会话没有可展示的题目。</text>
+  </view>
+
+  <view wx:else>
+    <view wx:for="{{questions}}" wx:for-item="question" wx:key="questionId" class="question-card">
+      <view class="row-between">
+        <text class="question-title">第 {{question.orderNo}} 题 · {{question.typeLabel}}</text>
+        <text class="status-badge {{question.answered ? 'status-running' : 'status-pending'}}">{{question.score}} 分</text>
+      </view>
+
+      <view class="question-desc">{{question.stem}}</view>
+
+      <view class="question-options">
+        <radio-group wx:if="{{question.type === 'SINGLE'}}" bindchange="onSingleChange" data-index="{{index}}">
+          <label wx:for="{{question.optionItems}}" wx:for-item="option" wx:key="key" class="choice-label">
+            <radio value="{{option.key}}" checked="{{option.key === question.draftAnswer}}" />
+            <text>{{option.key}}. {{option.text}}</text>
+          </label>
+        </radio-group>
+
+        <checkbox-group wx:elif="{{question.type === 'MULTI'}}" bindchange="onMultiChange" data-index="{{index}}">
+          <label wx:for="{{question.optionItems}}" wx:for-item="option" wx:key="key" class="choice-label">
+            <checkbox value="{{option.key}}" checked="{{question.draftAnswer.indexOf(option.key) > -1}}" />
+            <text>{{option.key}}. {{option.text}}</text>
+          </label>
+        </checkbox-group>
+
+        <radio-group wx:elif="{{question.type === 'JUDGE'}}" bindchange="onJudgeChange" data-index="{{index}}">
+          <label class="choice-label">
+            <radio value="true" checked="{{question.draftAnswer === 'true'}}" />
+            <text>正确</text>
+          </label>
+          <label class="choice-label">
+            <radio value="false" checked="{{question.draftAnswer === 'false'}}" />
+            <text>错误</text>
+          </label>
+        </radio-group>
+
+        <view wx:elif="{{question.type === 'FILL'}}">
+          <text class="field-label">填空答案</text>
+          <textarea
+            class="text-area"
+            auto-height="true"
+            maxlength="-1"
+            placeholder="请输入答案"
+            value="{{question.draftAnswer}}"
+            bindinput="onTextInput"
+            data-index="{{index}}"
+          />
+        </view>
+
+        <view wx:else>
+          <text class="field-label">简答内容</text>
+          <textarea
+            class="text-area"
+            auto-height="true"
+            maxlength="-1"
+            placeholder="请输入作答内容"
+            value="{{question.draftAnswer}}"
+            bindinput="onTextInput"
+            data-index="{{index}}"
+          />
+        </view>
+      </view>
+
+      <view class="top-gap row-between">
+        <text class="hint-text">标记本题为稍后检查</text>
+        <switch checked="{{question.markedForReview}}" bindchange="onReviewChange" data-index="{{index}}" />
+      </view>
+    </view>
+
+    <view class="panel-card">
+      <text class="section-title">提交操作</text>
+      <text class="section-subtitle">系统会自动保存未提交草稿。建议交卷前再手动保存一次。</text>
+
+      <view class="btn-group">
+        <button class="secondary-btn" loading="{{saving}}" bindtap="saveAnswers">保存答案</button>
+        <button class="danger-btn" loading="{{submitting}}" bindtap="submitSession">提交试卷</button>
+      </view>
+    </view>
+  </view>
+</view>
