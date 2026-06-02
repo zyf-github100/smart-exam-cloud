@@ -12,7 +12,9 @@ export const useAsyncAction = () => {
       }
       return result
     } catch (error) {
-      ElMessage.error(error?.message || options.errorMessage || 'Request failed')
+      if (!error?.silent) {
+        ElMessage.error(error?.message || options.errorMessage || 'Request failed')
+      }
       return null
     } finally {
       loading[key] = false

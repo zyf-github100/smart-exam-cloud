@@ -29,10 +29,30 @@ const fallbackModule = {
   tips: ['先确认账号权限', '再进入业务模块', '关键操作前先保存'],
 }
 
+const profileModuleCopy = {
+  label: '个人信息',
+  tagline: '账号资料与会话状态',
+  description: '查看当前账号、角色、姓名和会话状态，必要时刷新个人信息或退出登录。',
+  tips: ['确认当前登录账号。', '核对姓名与账号状态。', '离开公共设备前及时退出登录。'],
+}
+
+const resolveModuleDisplay = (module) => {
+  const roleCode = String(authUser.value?.role || '').trim().toUpperCase()
+  if (['TEACHER', 'STUDENT'].includes(roleCode) && module.name === 'connection') {
+    return {
+      ...module,
+      ...profileModuleCopy,
+    }
+  }
+  return module
+}
+
 const isModuleRoute = (modulePath, currentPath = route.path) =>
   currentPath === modulePath || currentPath.startsWith(`${modulePath}/`)
 
-const visibleModules = computed(() => consoleModules.filter((item) => canAccessModule(authUser.value, item)))
+const visibleModules = computed(() =>
+  consoleModules.filter((item) => canAccessModule(authUser.value, item)).map(resolveModuleDisplay)
+)
 const activeModule = computed(
   () => visibleModules.value.find((item) => isModuleRoute(item.path)) || visibleModules.value[0] || fallbackModule
 )
@@ -63,6 +83,7 @@ const recommendedVisibleFlow = computed(() =>
   visibleModules.value.length ? visibleModules.value.map((item) => item.label).join(' → ') : recommendedFlow
 )
 const isLoginRoute = computed(() => route.path === '/login')
+const routeShellKey = computed(() => route.matched[0]?.path || route.path)
 
 const goTo = (path) => {
   if (!path) return
@@ -249,7 +270,7 @@ watch([() => route.path, visibleModules], ensureRouteAccess, { immediate: true }
         <section class="mission-canvas card-surface">
           <router-view v-slot="{ Component }">
             <transition name="route-fade" mode="out-in">
-              <component :is="Component" :key="route.path" />
+              <component :is="Component" :key="routeShellKey" />
             </transition>
           </router-view>
         </section>

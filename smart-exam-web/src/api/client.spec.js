@@ -34,7 +34,7 @@ describe('api client auth helpers', () => {
     expect(getToken()).toBe('')
     expect(getSessionUser()).toBeNull()
     expect(hasAuthSession()).toBe(false)
-    expect(listener).toHaveBeenCalledTimes(4)
+    expect(listener).toHaveBeenCalledTimes(3)
 
     window.removeEventListener(AUTH_CHANGED_EVENT, listener)
   })

@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { api, getApiBase, setApiBase, setSavedUser, setToken } from '../../api/client'
+import { api, setSavedUser, setToken } from '../../api/client'
 import { getDefaultAccessiblePath } from '../../composables/accessControl'
 import { useAsyncAction } from '../../composables/useAsyncAction'
 
@@ -14,8 +14,6 @@ const authForm = reactive({
   password: '',
 })
 
-const apiBaseInput = ref(getApiBase())
-const currentApiBase = ref(getApiBase())
 const assistantMode = ref('idle')
 const mascotRef = ref(null)
 const particles = ref([])
@@ -33,31 +31,26 @@ const pointerState = reactive({
   gesture: 'none',
 })
 
-const basePresets = [
-  { label: '网关代理', value: '/api/v1' },
-  { label: '本地直连', value: 'http://localhost:9000/api/v1' },
-]
-
 const errorSuggestions = [
   '确认用户名和密码是否正确。',
-  '确认接口地址可访问（网关或本地直连）。',
-  '确认认证服务是否已经启动。',
+  '检查网络连接后再试一次。',
+  '如果仍然无法登录，请联系管理员协助处理。',
 ]
 
 const assistantMessageMap = {
-  idle: '你好，我是登录小助手。',
-  watch: '我在看着你，用户名别输错。',
-  password: '你输入密码时，我先捂住眼睛。',
-  config: '接口地址已就位，可以继续登录。',
-  loading: '正在登录，马上带你进入系统。',
-  success: '登录成功，正在为你打开控制台。',
-  error: '登录失败了，我把排查建议放在下面。',
-  hover: '鼠标移过来了，我会跟着你看。',
-  tap: '收到点击，向你打个招呼。',
-  easter: '彩蛋触发：今天也要稳定上线。',
-  heart: '长按触发比心模式。',
-  salute: '长按触发敬礼模式。',
+  idle: '欢迎回来。',
+  watch: '请输入你的账号信息。',
+  password: '请放心输入密码。',
+  loading: '正在登录，请稍候。',
+  success: '登录成功，正在进入首页。',
+  error: '登录失败，请检查后重试。',
+  hover: '准备好就开始吧。',
+  tap: '今天也要顺顺利利。',
+  easter: '欢迎回来，很高兴见到你。',
+  heart: '祝你今天一切顺利。',
+  salute: '开始前，先打起精神。',
 }
+
 let assistantTimer = null
 let waveTimer = null
 let gestureTimer = null
@@ -78,12 +71,11 @@ const assistantMessage = computed(() => assistantMessageMap[assistantMode.value]
 const showErrorSuggestions = computed(() => assistantMode.value === 'error')
 
 const mascotClass = computed(() => ({
-  'is-looking': ['watch', 'loading', 'success', 'config', 'hover', 'tap', 'easter'].includes(assistantMode.value),
+  'is-looking': ['watch', 'loading', 'success', 'hover', 'tap', 'easter'].includes(assistantMode.value),
   'is-password': assistantMode.value === 'password',
   'is-loading': assistantMode.value === 'loading',
   'is-success': assistantMode.value === 'success',
   'is-error': assistantMode.value === 'error',
-  'is-config': assistantMode.value === 'config',
   'is-hover': pointerState.hover,
   'is-pressed': pointerState.pressed,
   'is-wave': pointerState.waving,
@@ -93,9 +85,7 @@ const mascotClass = computed(() => ({
 }))
 
 const mascotVars = computed(() => {
-  const baseEyeX = ['watch', 'config', 'loading', 'success', 'hover', 'tap', 'easter'].includes(assistantMode.value)
-    ? 1.8
-    : 0
+  const baseEyeX = ['watch', 'loading', 'success', 'hover', 'tap', 'easter'].includes(assistantMode.value) ? 1.8 : 0
   return {
     '--eye-x': `${baseEyeX + pointerState.eyeX}px`,
     '--eye-y': `${pointerState.eyeY}px`,
@@ -304,10 +294,6 @@ const handleInputFocus = (field) => {
     setAssistantMode('password')
     return
   }
-  if (field === 'api') {
-    setAssistantMode('config')
-    return
-  }
   setAssistantMode('watch')
 }
 
@@ -318,18 +304,6 @@ const handleInputBlur = () => {
     return
   }
   setAssistantMode('idle')
-}
-
-const applyBase = () => {
-  setApiBase(apiBaseInput.value)
-  currentApiBase.value = getApiBase()
-  ElMessage.success('接口地址已更新')
-  setAssistantMode('config', 1500)
-}
-
-const usePreset = (preset) => {
-  apiBaseInput.value = preset
-  applyBase()
 }
 
 const login = async () => {
@@ -375,111 +349,110 @@ onBeforeUnmount(() => {
 
     <section class="login-card reveal-up">
       <div class="login-layout">
-        <aside class="assistant-panel">
-          <p class="assistant-kicker">互动助手</p>
-          <p class="assistant-bubble">{{ assistantMessage }}</p>
-
-          <ul v-if="showErrorSuggestions" class="assistant-suggest">
-            <li v-for="tip in errorSuggestions" :key="tip">{{ tip }}</li>
-          </ul>
-
-          <div
-            ref="mascotRef"
-            class="assistant-mascot"
-            :class="mascotClass"
-            :style="mascotVars"
-            @mouseenter="handleMascotEnter"
-            @mouseleave="handleMascotLeave"
-            @mousedown.prevent="handleMascotDown"
-            @mouseup="handleMascotUp"
-            @click="handleMascotClick"
-          >
-            <div class="mascot-shadow"></div>
-
-            <div class="mascot-head">
-              <div class="mascot-eyes">
-                <span class="eye"></span>
-                <span class="eye"></span>
-              </div>
-              <span class="mascot-mouth"></span>
-              <span class="mascot-hand hand-left"></span>
-              <span class="mascot-hand hand-right"></span>
-              <span class="privacy-mask"></span>
-            </div>
-
-            <div class="mascot-body">
-              <span class="mascot-heart">AI</span>
-            </div>
-
-            <span class="gesture-icon gesture-heart" aria-hidden="true">❤</span>
-            <span class="gesture-icon gesture-salute" aria-hidden="true">★</span>
-
-            <div class="particle-layer" aria-hidden="true">
-              <span
-                v-for="particle in particles"
-                :key="particle.id"
-                class="particle"
-                :style="particleStyle(particle)"
-              ></span>
-            </div>
+        <aside class="welcome-panel">
+          <div class="welcome-copy">
+            <p class="welcome-kicker">智慧考试云</p>
+            <h1>欢迎登录</h1>
+            <p class="welcome-sub">使用账号和密码进入系统，继续今天的工作。</p>
           </div>
 
-          <p class="assistant-tip">可玩交互：移动鼠标跟随、单击挥手、三连击彩蛋、长按 1 秒触发比心/敬礼。</p>
+          <div class="welcome-stage">
+            <div class="welcome-halo halo-a"></div>
+            <div class="welcome-halo halo-b"></div>
+            <p class="assistant-bubble">{{ assistantMessage }}</p>
+
+            <div class="welcome-mascot-wrap">
+              <div class="welcome-line welcome-line-a"></div>
+              <div class="welcome-line welcome-line-b"></div>
+              <div class="welcome-dot dot-a"></div>
+              <div class="welcome-dot dot-b"></div>
+              <div class="welcome-dot dot-c"></div>
+
+              <div
+                ref="mascotRef"
+                class="assistant-mascot"
+                :class="mascotClass"
+                :style="mascotVars"
+                @mouseenter="handleMascotEnter"
+                @mouseleave="handleMascotLeave"
+                @mousedown.prevent="handleMascotDown"
+                @mouseup="handleMascotUp"
+                @click="handleMascotClick"
+              >
+                <div class="mascot-shadow"></div>
+
+                <div class="mascot-head">
+                  <div class="mascot-eyes">
+                    <span class="eye"></span>
+                    <span class="eye"></span>
+                  </div>
+                  <span class="mascot-mouth"></span>
+                  <span class="mascot-hand hand-left"></span>
+                  <span class="mascot-hand hand-right"></span>
+                  <span class="privacy-mask"></span>
+                </div>
+
+                <div class="mascot-body">
+                  <span class="mascot-heart">SE</span>
+                </div>
+
+                <span class="gesture-icon gesture-heart" aria-hidden="true">❤</span>
+                <span class="gesture-icon gesture-salute" aria-hidden="true">★</span>
+
+                <div class="particle-layer" aria-hidden="true">
+                  <span
+                    v-for="particle in particles"
+                    :key="particle.id"
+                    class="particle"
+                    :style="particleStyle(particle)"
+                  ></span>
+                </div>
+              </div>
+            </div>
+          </div>
         </aside>
 
         <div class="login-main">
-          <header class="login-head">
-            <p class="kicker">智慧考试云</p>
-            <h1>登录</h1>
-            <p class="sub">使用独立登录窗口，登录后将自动跳转到你有权限的模块。</p>
-          </header>
+          <div class="form-card">
+            <p class="form-kicker">账号登录</p>
+            <h2>请输入登录信息</h2>
+            <p class="form-sub">登录后即可进入系统首页。</p>
 
-          <el-form label-position="top" @submit.prevent>
-            <el-form-item label="接口地址">
-              <el-input
-                v-model="apiBaseInput"
-                placeholder="/api/v1 或 http://localhost:9000/api/v1"
-                @focus="handleInputFocus('api')"
-                @blur="handleInputBlur"
-              >
-                <template #append>
-                  <el-button @click="applyBase">应用</el-button>
-                </template>
-              </el-input>
-              <div class="preset-row">
-                <el-button v-for="preset in basePresets" :key="preset.value" text @click="usePreset(preset.value)">
-                  {{ preset.label }}
-                </el-button>
-              </div>
-              <p class="hint-text">当前地址：{{ currentApiBase }}</p>
-            </el-form-item>
-
-            <div class="form-grid cols-2">
+            <el-form class="login-form" label-position="top" @submit.prevent>
               <el-form-item label="用户名">
                 <el-input
                   v-model="authForm.username"
                   autocomplete="username"
+                  placeholder="请输入用户名"
                   @focus="handleInputFocus('username')"
                   @blur="handleInputBlur"
                 />
               </el-form-item>
+
               <el-form-item label="密码">
                 <el-input
                   v-model="authForm.password"
                   type="password"
                   show-password
                   autocomplete="current-password"
+                  placeholder="请输入密码"
                   @focus="handleInputFocus('password')"
                   @blur="handleInputBlur"
                   @keyup.enter="login"
                 />
               </el-form-item>
-            </div>
 
-            <div class="action-row">
-              <el-button type="primary" :loading="loading.login" @click="login">登录</el-button>
-            </div>
-          </el-form>
+              <div class="action-row action-row--submit">
+                <el-button class="submit-button" type="primary" :loading="loading.login" @click="login">登录</el-button>
+              </div>
+            </el-form>
+
+            <ul v-if="showErrorSuggestions" class="login-alert-list">
+              <li v-for="tip in errorSuggestions" :key="tip">{{ tip }}</li>
+            </ul>
+
+            <p class="login-note">如忘记账号或密码，请联系管理员。</p>
+          </div>
         </div>
       </div>
     </section>
@@ -492,12 +465,12 @@ onBeforeUnmount(() => {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 18px;
+  padding: 24px;
   overflow: hidden;
   background:
-    radial-gradient(900px 560px at 16% 12%, rgba(255, 170, 220, 0.35), transparent 62%),
-    radial-gradient(860px 520px at 88% 10%, rgba(255, 203, 232, 0.3), transparent 64%),
-    linear-gradient(180deg, #fff3fa 0%, #ffeef8 48%, #ffe7f4 100%);
+    radial-gradient(900px 560px at 8% 12%, rgba(255, 170, 220, 0.34), transparent 62%),
+    radial-gradient(960px 620px at 100% 18%, rgba(255, 214, 234, 0.38), transparent 64%),
+    linear-gradient(180deg, #fff5fb 0%, #fff0f8 50%, #ffe9f4 100%);
 }
 
 .anime-overlay {
@@ -505,8 +478,8 @@ onBeforeUnmount(() => {
   inset: 0;
   z-index: -3;
   background:
-    radial-gradient(760px 420px at 50% 28%, rgba(255, 219, 237, 0.3), transparent 70%),
-    linear-gradient(180deg, rgba(115, 43, 88, 0.24) 0%, rgba(96, 34, 72, 0.35) 100%);
+    radial-gradient(760px 420px at 50% 22%, rgba(255, 235, 245, 0.3), transparent 70%),
+    linear-gradient(180deg, rgba(146, 63, 108, 0.08) 0%, rgba(96, 34, 72, 0.18) 100%);
 }
 
 .login-orb {
@@ -518,89 +491,189 @@ onBeforeUnmount(() => {
 }
 
 .orb-a {
-  width: 280px;
-  height: 280px;
-  left: -70px;
-  top: -50px;
-  background: rgba(255, 151, 203, 0.66);
+  width: 360px;
+  height: 360px;
+  left: -90px;
+  top: -80px;
+  background: rgba(255, 164, 211, 0.54);
 }
 
 .orb-b {
-  width: 240px;
-  height: 240px;
-  right: -60px;
-  bottom: -40px;
-  background: rgba(255, 114, 175, 0.58);
+  width: 300px;
+  height: 300px;
+  right: -70px;
+  bottom: -80px;
+  background: rgba(255, 137, 188, 0.46);
 }
 
 .login-card {
-  width: min(900px, 100%);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 178, 216, 0.82);
-  background: rgba(255, 245, 252, 0.9);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 18px 36px rgba(154, 65, 118, 0.22);
-  padding: clamp(14px, 2.2vw, 20px);
+  width: min(980px, 100%);
+  border-radius: 30px;
+  border: 1px solid rgba(246, 182, 217, 0.9);
+  background: rgba(255, 250, 253, 0.84);
+  backdrop-filter: blur(14px);
+  box-shadow:
+    0 24px 60px rgba(165, 79, 128, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  padding: clamp(18px, 2.6vw, 28px);
 }
 
 .login-layout {
   display: grid;
-  grid-template-columns: 250px minmax(0, 1fr);
-  gap: 16px;
-  align-items: stretch;
+  grid-template-columns: minmax(0, 1.06fr) minmax(360px, 0.94fr);
+  gap: clamp(20px, 3vw, 34px);
+  align-items: center;
 }
 
-.assistant-panel {
-  border-radius: 14px;
-  border: 1px solid rgba(194, 207, 228, 0.72);
-  background: rgba(255, 255, 255, 0.74);
-  backdrop-filter: blur(6px);
-  padding: 12px;
+.welcome-panel {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+}
+
+.welcome-copy {
+  display: grid;
+  gap: 10px;
+  max-width: 420px;
+}
+
+.welcome-kicker {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #b35586;
+}
+
+.welcome-copy h1 {
+  margin: 0;
+  font-family: 'ZCOOL XiaoWei', 'M PLUS Rounded 1c', serif;
+  font-size: clamp(42px, 6vw, 60px);
+  line-height: 0.95;
+  color: #9a3f71;
+  text-shadow: 0 8px 24px rgba(255, 223, 238, 0.78);
+}
+
+.welcome-sub {
+  margin: 0;
+  max-width: 320px;
+  color: #7c5870;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.welcome-stage {
+  position: relative;
+  min-height: 360px;
+  border-radius: 28px;
+  overflow: hidden;
+  border: 1px solid rgba(250, 201, 226, 0.9);
+  background:
+    radial-gradient(circle at 26% 24%, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0) 34%),
+    linear-gradient(160deg, rgba(255, 248, 252, 0.95), rgba(255, 228, 240, 0.9));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    0 18px 38px rgba(186, 113, 154, 0.12);
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  justify-content: space-between;
 }
 
-.assistant-kicker {
-  margin: 0;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #5f6f8c;
+.welcome-halo {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(2px);
+  pointer-events: none;
+}
+
+.halo-a {
+  width: 180px;
+  height: 180px;
+  top: -34px;
+  right: -26px;
+  background: radial-gradient(circle, rgba(255, 190, 221, 0.58), rgba(255, 190, 221, 0));
+}
+
+.halo-b {
+  width: 220px;
+  height: 220px;
+  left: -70px;
+  bottom: -84px;
+  background: radial-gradient(circle, rgba(255, 225, 237, 0.84), rgba(255, 225, 237, 0));
 }
 
 .assistant-bubble {
   margin: 0;
-  min-height: 44px;
-  border-radius: 12px;
-  border: 1px solid rgba(191, 204, 224, 0.9);
-  background: rgba(247, 251, 255, 0.88);
-  color: #43536d;
-  font-size: 12px;
-  line-height: 1.45;
-  padding: 8px 10px;
-}
-
-.assistant-suggest {
-  margin: 0;
-  padding: 8px 12px;
-  border-radius: 12px;
-  border: 1px dashed rgba(208, 118, 145, 0.72);
-  background: rgba(255, 248, 251, 0.78);
-  color: #7d4b63;
-  font-size: 12px;
-  line-height: 1.45;
-}
-
-.assistant-suggest li + li {
-  margin-top: 4px;
-}
-
-.assistant-tip {
-  margin: 0;
-  color: #5d6c86;
-  font-size: 12px;
+  position: relative;
+  z-index: 1;
+  align-self: flex-start;
+  max-width: 250px;
+  border-radius: 999px;
+  border: 1px solid rgba(239, 186, 215, 0.92);
+  background: rgba(255, 255, 255, 0.74);
+  color: #7b5770;
+  font-size: 13px;
   line-height: 1.4;
+  padding: 10px 16px;
+  box-shadow: 0 10px 24px rgba(194, 118, 158, 0.12);
+}
+
+.welcome-mascot-wrap {
+  position: relative;
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+}
+
+.welcome-line {
+  position: absolute;
+  border-radius: 999px;
+  border: 1px solid rgba(239, 186, 215, 0.72);
+  opacity: 0.8;
+}
+
+.welcome-line-a {
+  width: 210px;
+  height: 210px;
+  bottom: 8px;
+  border-left-color: transparent;
+  border-bottom-color: transparent;
+  transform: rotate(-14deg);
+}
+
+.welcome-line-b {
+  width: 270px;
+  height: 270px;
+  bottom: -16px;
+  border-style: dashed;
+  border-right-color: transparent;
+  border-top-color: transparent;
+  transform: rotate(12deg);
+}
+
+.welcome-dot {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #ffc6e0, #f28fbe);
+  box-shadow: 0 0 0 6px rgba(255, 221, 235, 0.34);
+}
+
+.dot-a {
+  top: 18px;
+  left: 48px;
+}
+
+.dot-b {
+  top: 44px;
+  right: 70px;
+}
+
+.dot-c {
+  bottom: 28px;
+  left: 78px;
 }
 
 .assistant-mascot {
@@ -611,7 +684,8 @@ onBeforeUnmount(() => {
   --sparkle-x: 50%;
   --sparkle-y: 24%;
   position: relative;
-  height: 166px;
+  z-index: 1;
+  height: 196px;
   display: grid;
   place-items: center;
   animation: mascotFloat 3.6s ease-in-out infinite;
@@ -622,9 +696,9 @@ onBeforeUnmount(() => {
 
 .mascot-shadow {
   position: absolute;
-  bottom: 12px;
-  width: 84px;
-  height: 14px;
+  bottom: 18px;
+  width: 100px;
+  height: 16px;
   border-radius: 999px;
   background: rgba(165, 96, 131, 0.24);
   filter: blur(4px);
@@ -741,7 +815,7 @@ onBeforeUnmount(() => {
 
 .mascot-heart {
   font-size: 10px;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.18em;
   color: rgba(255, 255, 255, 0.93);
   font-weight: 700;
 }
@@ -785,7 +859,7 @@ onBeforeUnmount(() => {
 }
 
 .assistant-mascot.is-hover .mascot-shadow {
-  width: 96px;
+  width: 112px;
   opacity: 0.82;
 }
 
@@ -827,11 +901,6 @@ onBeforeUnmount(() => {
   border-bottom-color: #38a36d;
 }
 
-.assistant-mascot.is-config .mascot-mouth {
-  width: 20px;
-  border-bottom-color: #5a5fc9;
-}
-
 .assistant-mascot.is-error {
   animation: mascotShake 0.35s linear 2;
 }
@@ -868,50 +937,96 @@ onBeforeUnmount(() => {
 }
 
 .login-main {
+  display: flex;
+  justify-content: flex-end;
   min-width: 0;
 }
 
-.login-head {
-  margin-bottom: 8px;
+.form-card {
+  width: min(420px, 100%);
+  border-radius: 26px;
+  border: 1px solid rgba(240, 190, 218, 0.94);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow:
+    0 20px 42px rgba(162, 86, 126, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+  padding: clamp(22px, 3vw, 32px);
 }
 
-.login-head .kicker {
-  margin: 0;
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  color: #c75b96;
+.form-kicker {
+  margin: 0 0 8px;
+  font-size: 12px;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
+  color: #bf5d8f;
 }
 
-.login-head h1 {
-  margin: 6px 0 4px;
-  font-family: 'ZCOOL XiaoWei', 'M PLUS Rounded 1c', serif;
-  font-size: clamp(30px, 4vw, 38px);
-  line-height: 1.02;
-  color: #9f3d70;
-  text-shadow: 0 4px 10px rgba(255, 211, 235, 0.7);
-}
-
-.login-head .sub {
+.form-card h2 {
   margin: 0;
-  color: #7f4e66;
-  font-size: 13px;
+  font-size: clamp(24px, 3vw, 30px);
+  color: #8d3c67;
 }
 
-.preset-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 6px;
+.form-sub {
+  margin: 10px 0 0;
+  color: #7d5d71;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.login-form {
+  margin-top: 24px;
+}
+
+.login-form :deep(.el-form-item) {
+  margin-bottom: 18px;
+}
+
+.action-row--submit {
+  margin-top: 8px;
+}
+
+.submit-button {
+  width: 100%;
+  min-height: 46px;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.login-alert-list {
+  margin: 20px 0 0;
+  padding: 12px 14px 12px 32px;
+  border-radius: 18px;
+  border: 1px dashed rgba(220, 130, 169, 0.76);
+  background: rgba(255, 245, 249, 0.96);
+  color: #8a4b6d;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.login-alert-list li + li {
+  margin-top: 4px;
+}
+
+.login-note {
+  margin: 16px 0 0;
+  color: #8b7080;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .login-card :deep(.el-form-item__label) {
   color: #8a4c6e;
+  font-weight: 600;
 }
 
 .login-card :deep(.el-input__wrapper) {
-  border-color: rgba(243, 177, 214, 0.92);
-  background: rgba(255, 255, 255, 0.86);
+  min-height: 48px;
+  border-radius: 16px;
+  border-color: rgba(243, 177, 214, 0.88);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
 }
 
 .login-card :deep(.el-input__wrapper:hover) {
@@ -1005,14 +1120,23 @@ onBeforeUnmount(() => {
 @media (max-width: 920px) {
   .login-layout {
     grid-template-columns: 1fr;
-  }
-
-  .assistant-panel {
-    order: 2;
+    gap: 18px;
   }
 
   .login-main {
-    order: 1;
+    justify-content: stretch;
+  }
+
+  .form-card {
+    width: 100%;
+  }
+
+  .welcome-stage {
+    min-height: 300px;
+  }
+
+  .welcome-copy h1 {
+    font-size: clamp(36px, 10vw, 52px);
   }
 }
 
@@ -1022,7 +1146,32 @@ onBeforeUnmount(() => {
   }
 
   .login-card {
-    padding: 12px;
+    padding: 16px;
+    border-radius: 24px;
+  }
+
+  .welcome-stage {
+    min-height: 260px;
+    padding: 18px;
+  }
+
+  .assistant-bubble {
+    max-width: 100%;
+    font-size: 12px;
+  }
+
+  .assistant-mascot {
+    height: 176px;
+  }
+
+  .welcome-line-a {
+    width: 180px;
+    height: 180px;
+  }
+
+  .welcome-line-b {
+    width: 230px;
+    height: 230px;
   }
 }
 </style>

@@ -9,6 +9,7 @@ const ttlByResource = {
 }
 
 const normalizeText = (value) => String(value || '').trim()
+const normalizeRole = (value) => normalizeText(value).toUpperCase()
 
 const stableStringify = (value) => {
   if (value === null || value === undefined) return 'null'
@@ -88,8 +89,20 @@ export const invalidateReferenceData = (resource) => {
   }
 }
 
+const filterVisibleUsers = (users) => {
+  if (!Array.isArray(users)) return []
+  const currentRole = normalizeRole(getSavedUser()?.role)
+  if (currentRole === 'TEACHER') {
+    return users.filter((item) => normalizeRole(item?.role) === 'STUDENT')
+  }
+  if (currentRole === 'STUDENT') {
+    return []
+  }
+  return users
+}
+
 export const getUserDirectory = (options = {}) =>
-  loadCachedResource('users', () => api.listUsers(), options)
+  loadCachedResource('users', () => api.listUsers(), options).then(filterVisibleUsers)
 
 export const getPublishedExamDirectory = (options = {}) =>
   loadCachedResource('published-exams', () => api.listPublishedExams(), options)

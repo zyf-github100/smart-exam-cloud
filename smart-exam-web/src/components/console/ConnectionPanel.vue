@@ -1,6 +1,7 @@
 ﻿<script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { Refresh, SwitchButton } from '@element-plus/icons-vue'
 import {
   AUTH_CHANGED_EVENT,
   getApiBase,
@@ -58,15 +59,23 @@ const authTagType = computed(() => (isAuthenticated.value ? 'success' : 'info'))
 const displayUser = computed(() => authState.user?.username || '-')
 const displayRoleCode = computed(() => String(authState.user?.role || '').trim().toUpperCase())
 const displayRole = computed(() => roleLabelMap[displayRoleCode.value] || displayRoleCode.value || '-')
-const isStudentRole = computed(() => displayRoleCode.value === 'STUDENT')
+const isProfileRole = computed(() => ['TEACHER', 'STUDENT'].includes(displayRoleCode.value))
 const envSwitchOverride = String(import.meta.env.VITE_ENABLE_ENV_CONFIG || '').trim().toLowerCase() === 'true'
 const canManageEnvConfig = computed(() => {
-  if (isStudentRole.value) return false
+  if (isProfileRole.value) return false
   if (envSwitchOverride) return true
   if (import.meta.env.DEV) return true
   return displayRoleCode.value === 'ADMIN'
 })
 const showTechnicalPanel = computed(() => displayRoleCode.value === 'ADMIN')
+const pageTitle = computed(() => (isProfileRole.value ? '个人信息' : '环境与登录工作台'))
+const pageSubtitle = computed(() =>
+  isProfileRole.value
+    ? '查看当前登录账号、角色、姓名和账号状态。'
+    : '把网关配置、登录动作和会话状态放在同一视图，减少来回切换。'
+)
+const actionCardTitle = computed(() => (isProfileRole.value ? '账号操作' : canManageEnvConfig.value ? '环境连接与会话' : '会话操作'))
+const profileCardTitle = computed(() => (isProfileRole.value ? '个人资料' : '会话状态'))
 
 const profileData = computed(() => meData.value?.profile || {})
 const profileName = computed(() => profileData.value?.realName || authState.user?.realName || '-')
@@ -75,6 +84,14 @@ const profileStatus = computed(() => {
   const code = String(profileData.value?.status || '').trim().toUpperCase()
   return statusLabelMap[code] || code || '-'
 })
+const profileInitial = computed(() => {
+  const value = String(profileName.value !== '-' ? profileName.value : displayUser.value || '').trim()
+  if (value) return value.slice(0, 1).toUpperCase()
+  if (displayRoleCode.value === 'TEACHER') return '师'
+  if (displayRoleCode.value === 'STUDENT') return '学'
+  return '我'
+})
+const profileKicker = computed(() => (displayRole.value && displayRole.value !== '-' ? `${displayRole.value}账号` : '账号资料'))
 
 const maskedToken = computed(() => {
   if (!authState.token) return '-'
@@ -215,12 +232,13 @@ const goLogin = () => {
 }
 
 const logout = async () => {
-  await run('logout', () => api.logout(), { successMessage: '已退出登录' })
+  await run('logout', () => api.logout())
   authState.token = ''
   authState.user = null
   meData.value = null
   userList.value = []
   clearAuth()
+  router.replace('/login')
 }
 
 const refreshContext = async (options = {}) => {
@@ -257,15 +275,52 @@ onBeforeUnmount(() => {
     <section class="console-block">
       <div class="block-head connection-head">
         <div>
-          <h3 class="block-title">环境与登录工作台</h3>
-          <p class="block-sub">把网关配置、登录动作和会话状态放在同一视图，减少来回切换。</p>
+          <h3 class="block-title">{{ pageTitle }}</h3>
+          <p class="block-sub">{{ pageSubtitle }}</p>
         </div>
         <el-tag :type="authTagType">{{ isAuthenticated ? '在线会话' : '未登录' }}</el-tag>
       </div>
 
-      <div class="connection-grid">
+      <section v-if="isProfileRole" class="student-profile-panel">
+        <div class="student-profile-main">
+          <div class="student-avatar">{{ profileInitial }}</div>
+          <div class="student-identity">
+            <p class="student-kicker">{{ profileKicker }}</p>
+            <h4>{{ profileName }}</h4>
+            <p class="student-meta">{{ displayUser }} · {{ displayRole }}</p>
+            <div class="student-badges">
+              <el-tag :type="authTagType">{{ isAuthenticated ? '在线会话' : '未登录' }}</el-tag>
+              <el-tag :type="statusTagType(normalizeStatusCode(profileData.status || authState.user?.status))" effect="plain">
+                {{ profileStatus }}
+              </el-tag>
+            </div>
+          </div>
+          <div class="student-actions">
+            <el-button
+              type="primary"
+              :icon="Refresh"
+              :loading="loading.me"
+              @click="refreshContext({ force: true })"
+            >
+              刷新
+            </el-button>
+            <el-button plain :icon="SwitchButton" :loading="loading.logout" @click="logout">
+              退出
+            </el-button>
+          </div>
+        </div>
+
+        <div class="student-info-grid">
+          <article v-for="item in sessionSummary" :key="item.label" class="student-info-item">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </article>
+        </div>
+      </section>
+
+      <div v-else class="connection-grid">
         <article class="connection-card">
-          <h4>{{ canManageEnvConfig ? '环境连接与会话' : '会话操作' }}</h4>
+          <h4>{{ actionCardTitle }}</h4>
           <el-form label-position="top">
             <template v-if="canManageEnvConfig">
               <el-form-item label="API Base">
@@ -296,7 +351,7 @@ onBeforeUnmount(() => {
         </article>
 
         <article class="connection-card session-card">
-          <h4>会话状态</h4>
+          <h4>{{ profileCardTitle }}</h4>
           <el-empty v-if="!isAuthenticated" description="当前未登录，请先登录账号" :image-size="86">
             <el-button type="primary" @click="goLogin">前往登录页</el-button>
           </el-empty>
@@ -389,6 +444,108 @@ onBeforeUnmount(() => {
   align-items: center;
 }
 
+.student-profile-panel {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+  background:
+    radial-gradient(360px 180px at 4% 0%, rgba(79, 147, 255, 0.12), transparent 68%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(247, 251, 255, 0.74));
+}
+
+.student-profile-main {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+}
+
+.student-avatar {
+  width: 84px;
+  height: 84px;
+  display: grid;
+  place-items: center;
+  border-radius: 24px;
+  color: #fff;
+  font-size: 34px;
+  font-weight: 900;
+  background: linear-gradient(140deg, #4f93ff, #67c8ff 58%, #ff8fad);
+  box-shadow: 0 18px 32px rgba(79, 147, 255, 0.22);
+}
+
+.student-identity {
+  min-width: 0;
+}
+
+.student-kicker {
+  margin: 0 0 5px;
+  color: var(--ink-muted);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.student-identity h4 {
+  margin: 0;
+  color: var(--ink-main);
+  font-size: clamp(24px, 2.1vw, 32px);
+  line-height: 1.1;
+}
+
+.student-meta {
+  margin: 7px 0 0;
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.student-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.student-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.student-info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.student-info-item {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(198, 217, 246, 0.88);
+  background: linear-gradient(155deg, rgba(255, 255, 255, 0.92), rgba(241, 248, 255, 0.74));
+  box-shadow: var(--inner-glow);
+}
+
+.student-info-item span {
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+
+.student-info-item strong {
+  min-width: 0;
+  color: #355a9e;
+  font-size: 18px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
 .connection-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
@@ -457,12 +614,48 @@ onBeforeUnmount(() => {
 }
 
 @media (max-width: 1100px) {
+  .student-profile-main {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .student-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .student-info-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .connection-grid {
     grid-template-columns: 1fr;
   }
 
   .directory-filters {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .student-profile-panel {
+    padding: 12px;
+  }
+
+  .student-profile-main,
+  .student-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .student-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
+    font-size: 28px;
+  }
+
+  .student-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
 </style>

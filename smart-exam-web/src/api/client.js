@@ -3,6 +3,7 @@ import axios from 'axios'
 const TOKEN_KEY = 'smart_exam_token'
 const USER_KEY = 'smart_exam_user'
 const BASE_KEY = 'smart_exam_api_base'
+const AUTH_EXPIRED_CODE = 40100
 export const AUTH_CHANGED_EVENT = 'smart-exam-auth-changed'
 
 const defaultBase = import.meta.env.VITE_API_BASE || '/api/v1'
@@ -15,6 +16,32 @@ const notifyAuthChanged = () => {
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event(AUTH_CHANGED_EVENT))
   }
+}
+
+const clearStoredAuth = () => {
+  const hadAuth = Boolean(token || localStorage.getItem(USER_KEY))
+  token = ''
+  localStorage.removeItem(TOKEN_KEY)
+  localStorage.removeItem(USER_KEY)
+  if (hadAuth) {
+    notifyAuthChanged()
+  }
+}
+
+const createAuthExpiredError = (message) => {
+  const error = new Error(message || '登录已过期')
+  error.authExpired = true
+  error.silent = true
+  return error
+}
+
+export const isAuthExpiredError = (error) => Boolean(error?.authExpired)
+
+const isLoginRequest = (config = {}) => String(config?.url || '').includes('/auth/login')
+
+const handleAuthExpired = (message) => {
+  clearStoredAuth()
+  return createAuthExpiredError(message)
 }
 
 const http = axios.create({
@@ -33,6 +60,9 @@ http.interceptors.response.use(
   (response) => {
     const payload = response.data
     if (payload && typeof payload === 'object' && Object.hasOwn(payload, 'code')) {
+      if (payload.code === AUTH_EXPIRED_CODE && !isLoginRequest(response.config)) {
+        return Promise.reject(handleAuthExpired(payload.message))
+      }
       if (payload.code !== 0) {
         return Promise.reject(new Error(payload.message || 'Request failed'))
       }
@@ -41,11 +71,16 @@ http.interceptors.response.use(
     return payload
   },
   (error) => {
+    const status = error?.response?.status
+    const serverCode = error?.response?.data?.code
     const serverMessage =
       error?.response?.data?.message ||
       error?.response?.data?.error ||
       error?.message ||
       'Network error'
+    if ((status === 401 || serverCode === AUTH_EXPIRED_CODE) && !isLoginRequest(error?.config)) {
+      return Promise.reject(handleAuthExpired(serverMessage))
+    }
     return Promise.reject(new Error(serverMessage))
   }
 )
@@ -96,8 +131,7 @@ export const setSavedUser = (user) => {
 }
 
 export const clearAuth = () => {
-  setToken('')
-  setSavedUser(null)
+  clearStoredAuth()
 }
 
 export const api = {

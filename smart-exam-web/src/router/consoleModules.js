@@ -12,7 +12,7 @@ export const consoleModules = [
   {
     path: '/connection',
     name: 'connection',
-    public: true,
+    roles: ['ADMIN', 'TEACHER', 'STUDENT'],
     icon: Connection,
     label: '环境连接',
     tagline: '网关、登录与会话校验',
@@ -87,4 +87,3 @@ export const consoleModules = [
 ]
 
 export const recommendedFlow = consoleModules.map((item) => item.label).join(' → ')
-
