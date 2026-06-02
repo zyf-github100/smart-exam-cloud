@@ -38,6 +38,7 @@ def connect_client(target: str) -> paramiko.SSHClient:
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     client.connect(
         hostname=server["host"],
+        port=int(server.get("port", 22)),
         username=server["username"],
         password=server["password"],
         timeout=20,

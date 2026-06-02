@@ -1,13 +1,15 @@
 {
   "backend": {
     "label": "Backend",
-    "host": "36.137.84.162",
+    "host": "36.138.84.84",
+    "port": 22,
     "username": "root",
     "password": "replace-with-backend-password"
   },
   "frontend": {
     "label": "Frontend",
-    "host": "8.148.181.9",
+    "host": "36.138.84.84",
+    "port": 22,
     "username": "root",
     "password": "replace-with-frontend-password"
   }

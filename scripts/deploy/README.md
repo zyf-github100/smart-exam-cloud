@@ -10,6 +10,39 @@ Copy-Item scripts/deploy/servers.example.json scripts/deploy/servers.local.json
 
 Fill `servers.local.json` with the actual SSH passwords, or provide the same JSON through `SMART_EXAM_SERVERS_JSON`.
 
+For GitHub Actions CD, add these repository secrets:
+
+- `SMART_EXAM_SERVERS_JSON`: server JSON. For the current all-in-one server, use `36.138.84.84` as both backend and frontend host, then fill the real SSH username/password.
+- `DEPLOY_BACKEND_POST_COMMAND`: backend restart command, for example `supervisorctl restart auth-service user-service question-service exam-service grading-service analysis-service admin-service gateway-service`.
+- `DEPLOY_FRONTEND_POST_COMMAND`: frontend restart command. If omitted, the deploy script defaults to `docker restart smart-exam-web >/dev/null`.
+- `SMOKE_GATEWAY_URL`: optional, defaults to `http://36.138.84.84:9000`.
+- `SMOKE_USERNAME` / `SMOKE_PASSWORD`: optional smoke-check login account. If either is missing, smoke check is skipped.
+
+Add repository variable `CD_ENABLED=true` only after the secrets above are ready. Before that, the CD workflow can still be started manually with `workflow_dispatch`, but it will not auto-deploy after CI.
+
+Example `SMART_EXAM_SERVERS_JSON`:
+
+```json
+{
+  "backend": {
+    "label": "Backend",
+    "host": "36.138.84.84",
+    "port": 22,
+    "username": "root",
+    "password": "replace-with-backend-password"
+  },
+  "frontend": {
+    "label": "Frontend",
+    "host": "36.138.84.84",
+    "port": 22,
+    "username": "root",
+    "password": "replace-with-frontend-password"
+  }
+}
+```
+
+The first CD version is defined in `.github/workflows/cd.yml`. It runs after CI succeeds on `main`, and can also be started manually from GitHub Actions.
+
 ## 2. Build and deploy
 
 ```powershell
