@@ -1,0 +1,21 @@
+{
+  "verbose_files": [
+    "recovery-decoded\\binlog.000002.verbose",
+    "recovery-decoded\\binlog.000004.verbose"
+  ],
+  "statements": 4373,
+  "by_table": {
+    "INSERT admin_db.sys_config": 3,
+    "INSERT admin_db.sys_permission": 29,
+    "INSERT admin_db.sys_role": 3,
+    "INSERT admin_db.sys_role_permission": 48,
+    "INSERT question_db.q_paper": 3,
+    "INSERT question_db.q_paper_question": 30,
+    "INSERT question_db.q_question": 4100,
+    "INSERT user_db.sys_user": 121,
+    "UPDATE admin_db.sys_config": 3,
+    "UPDATE admin_db.sys_permission": 29,
+    "UPDATE admin_db.sys_role": 3,
+    "UPDATE user_db.sys_user": 1
+  }
+}

@@ -1,0 +1,1384 @@
+# The proper term is pseudo_replica_mode, but we use this compatibility alias
+# to make the statement usable on server versions 8.0.24 and older.
+/*!50530 SET @@SESSION.PSEUDO_SLAVE_MODE=1*/;
+/*!50003 SET @OLD_COMPLETION_TYPE=@@COMPLETION_TYPE,COMPLETION_TYPE=0*/;
+DELIMITER /*!*/;
+# at 4
+#260315  8:14:45 server id 1  end_log_pos 126 CRC32 0x16a9365e 	Start: binlog v 4, server v 8.0.45 created 260315  8:14:45 at startup
+ROLLBACK/*!*/;
+# at 126
+#260315  8:14:45 server id 1  end_log_pos 157 CRC32 0x55de3793 	Previous-GTIDs
+# [empty]
+# at 157
+#260315 19:56:09 server id 1  end_log_pos 236 CRC32 0xc9b7dc19 	Anonymous_GTID	last_committed=0	sequence_number=1	rbr_only=yes	original_committed_timestamp=1773575769633559	immediate_commit_timestamp=1773575769633559	transaction_length=12787
+/*!50718 SET TRANSACTION ISOLATION LEVEL READ COMMITTED*//*!*/;
+# original_commit_timestamp=1773575769633559 (2026-03-15 19:56:09.633559 CST)
+# immediate_commit_timestamp=1773575769633559 (2026-03-15 19:56:09.633559 CST)
+/*!80001 SET @@session.original_commit_timestamp=1773575769633559*//*!*/;
+/*!80014 SET @@session.original_server_version=80045*//*!*/;
+/*!80014 SET @@session.immediate_server_version=80045*//*!*/;
+SET @@SESSION.GTID_NEXT= 'ANONYMOUS'/*!*/;
+# at 236
+#260315 19:55:57 server id 1  end_log_pos 332 CRC32 0x4f0e8366 	Query	thread_id=1746	exec_time=0	error_code=0
+SET TIMESTAMP=1773575757/*!*/;
+SET @@session.pseudo_thread_id=1746/*!*/;
+SET @@session.foreign_key_checks=1, @@session.sql_auto_is_null=0, @@session.unique_checks=1, @@session.autocommit=1/*!*/;
+SET @@session.sql_mode=1168113696/*!*/;
+SET @@session.auto_increment_increment=1, @@session.auto_increment_offset=1/*!*/;
+/*!\C utf8mb4 *//*!*/;
+SET @@session.character_set_client=255,@@session.collation_connection=255,@@session.collation_server=255/*!*/;
+SET @@session.time_zone='SYSTEM'/*!*/;
+SET @@session.lc_time_names=0/*!*/;
+SET @@session.collation_database=DEFAULT/*!*/;
+/*!80011 SET @@session.default_collation_for_utf8mb4=255*//*!*/;
+BEGIN
+/*!*/;
+# at 332
+#260315 19:55:57 server id 1  end_log_pos 408 CRC32 0x1d572daf 	Table_map: `admin_db`.`sys_role` mapped to number 97
+# has_generated_invisible_primary_key=0
+# at 408
+#260315 19:55:57 server id 1  end_log_pos 704 CRC32 0x92659d32 	Update_rows: table id 97 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_role`
+### WHERE
+###   @1=91001 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN' /* VARSTRING(128) meta=128 nullable=0 is_null=0 */
+###   @3='å¹³å°ç®¡ç†å‘˜' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @4='å¹³å°æ²»ç†ã€æƒé™åˆ†é…ä¸Žè¿ç»´é…ç½®ç®¡ç†' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @5=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:32' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:32' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=91001 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN' /* VARSTRING(128) meta=128 nullable=0 is_null=0 */
+###   @3='平台管理员' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @4='平台治理、权限分配与运维配置管理' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @5=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:32' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:55:57' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 704
+#260315 19:55:58 server id 1  end_log_pos 780 CRC32 0x355a954d 	Table_map: `admin_db`.`sys_role` mapped to number 97
+# has_generated_invisible_primary_key=0
+# at 780
+#260315 19:55:58 server id 1  end_log_pos 980 CRC32 0x74debb3b 	Update_rows: table id 97 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_role`
+### WHERE
+###   @1=91002 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='TEACHER' /* VARSTRING(128) meta=128 nullable=0 is_null=0 */
+###   @3='æ•™å¸ˆ' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @4='æ•™å­¦ç›¸å…³ä¸šåŠ¡è§’è‰²' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @5=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:32' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:32' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=91002 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='TEACHER' /* VARSTRING(128) meta=128 nullable=0 is_null=0 */
+###   @3='教师' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @4='教学相关业务角色' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @5=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:32' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:55:58' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 980
+#260315 19:55:58 server id 1  end_log_pos 1056 CRC32 0xdc570fd0 	Table_map: `admin_db`.`sys_role` mapped to number 97
+# has_generated_invisible_primary_key=0
+# at 1056
+#260315 19:55:58 server id 1  end_log_pos 1236 CRC32 0xf94df89e 	Update_rows: table id 97 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_role`
+### WHERE
+###   @1=91003 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='STUDENT' /* VARSTRING(128) meta=128 nullable=0 is_null=0 */
+###   @3='å­¦ç”Ÿ' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @4='è€ƒè¯•å‚ä¸Žè§’è‰²' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @5=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:32' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:32' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=91003 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='STUDENT' /* VARSTRING(128) meta=128 nullable=0 is_null=0 */
+###   @3='学生' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @4='考试参与角色' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @5=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:32' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:55:58' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 1236
+#260315 19:55:58 server id 1  end_log_pos 1320 CRC32 0x4a1946c8 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 1320
+#260315 19:55:58 server id 1  end_log_pos 1597 CRC32 0x4dc259a4 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92001 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN_PLATFORM_ACCESS' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='ç®¡ç†å‘˜å…¥å£è®¿é—®' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ADMIN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='è®¿é—®ç®¡ç†å‘˜ä¸­å¿ƒ' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92001 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN_PLATFORM_ACCESS' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='管理员入口访问' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ADMIN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='访问管理员中心' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:55:58' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 1597
+#260315 19:55:59 server id 1  end_log_pos 1681 CRC32 0x6934105b 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 1681
+#260315 19:55:59 server id 1  end_log_pos 1964 CRC32 0xcaeb316a 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92002 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN_OVERVIEW_READ' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='å¹³å°æ¦‚è§ˆè¯»å–' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ADMIN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='è¯»å–ç®¡ç†å‘˜æ¦‚è§ˆæŒ‡æ ‡' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92002 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN_OVERVIEW_READ' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='平台概览读取' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ADMIN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='读取管理员概览指标' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:55:59' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 1964
+#260315 19:55:59 server id 1  end_log_pos 2048 CRC32 0xd9c04359 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 2048
+#260315 19:55:59 server id 1  end_log_pos 2340 CRC32 0x9df88852 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92003 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN_USER_VIEW' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='ç”¨æˆ·åˆ—è¡¨è¯»å–' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ADMIN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='æŸ¥è¯¢å¹³å°ç”¨æˆ·ç›®å½•ä¸Žè¯¦æƒ…' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92003 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN_USER_VIEW' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='用户列表读取' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ADMIN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='查询平台用户目录与详情' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:55:59' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 2340
+#260315 19:55:59 server id 1  end_log_pos 2424 CRC32 0xb80acfe1 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 2424
+#260315 19:55:59 server id 1  end_log_pos 2690 CRC32 0x7a9f4618 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92004 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN_USER_STATUS_UPDATE' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='ç”¨æˆ·çŠ¶æ€å˜æ›´' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ADMIN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='å¯ç”¨/åœç”¨ç”¨æˆ·' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92004 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN_USER_STATUS_UPDATE' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='用户状态变更' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ADMIN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='启用/停用用户' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:55:59' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 2690
+#260315 19:55:59 server id 1  end_log_pos 2774 CRC32 0x2a04d8a0 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 2774
+#260315 19:55:59 server id 1  end_log_pos 3054 CRC32 0xa10b77c6 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92005 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN_USER_ROLE_UPDATE' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='ç”¨æˆ·è§’è‰²å˜æ›´' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ADMIN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='è°ƒæ•´ç”¨æˆ·ä¸šåŠ¡è§’è‰²' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92005 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN_USER_ROLE_UPDATE' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='用户角色变更' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ADMIN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='调整用户业务角色' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:55:59' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 3054
+#260315 19:56:00 server id 1  end_log_pos 3138 CRC32 0xc13919b0 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 3138
+#260315 19:56:00 server id 1  end_log_pos 3424 CRC32 0x936d9100 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92006 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN_USER_PASSWORD_RESET' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='ç”¨æˆ·å¯†ç é‡ç½®' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ADMIN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='é‡ç½®ç”¨æˆ·ç™»å½•å¯†ç ' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92006 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN_USER_PASSWORD_RESET' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='用户密码重置' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ADMIN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='重置用户登录密码' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:00' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 3424
+#260315 19:56:00 server id 1  end_log_pos 3508 CRC32 0x41f0a2b3 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 3508
+#260315 19:56:00 server id 1  end_log_pos 3800 CRC32 0x79509a12 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92007 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN_ROLE_PERMISSION_ASSIGN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='è§’è‰²æƒé™åˆ†é…' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ADMIN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='ç»´æŠ¤è§’è‰²æƒé™çŸ©é˜µ' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92007 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN_ROLE_PERMISSION_ASSIGN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='角色权限分配' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ADMIN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='维护角色权限矩阵' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:00' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 3800
+#260315 19:56:00 server id 1  end_log_pos 3884 CRC32 0x1365f2a9 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 3884
+#260315 19:56:00 server id 1  end_log_pos 4141 CRC32 0x92f39394 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92008 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN_CONFIG_READ' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='ç³»ç»Ÿé…ç½®è¯»å–' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ADMIN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='è¯»å–ç³»ç»Ÿé…ç½®é¡¹' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92008 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN_CONFIG_READ' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='系统配置读取' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ADMIN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='读取系统配置项' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:00' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 4141
+#260315 19:56:01 server id 1  end_log_pos 4225 CRC32 0x4a4a4324 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 4225
+#260315 19:56:01 server id 1  end_log_pos 4516 CRC32 0x16717bd3 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92009 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN_CONFIG_WRITE' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='ç³»ç»Ÿé…ç½®å†™å…¥' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ADMIN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='åˆ›å»ºæˆ–æ›´æ–°ç³»ç»Ÿé…ç½®é¡¹' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92009 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN_CONFIG_WRITE' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='系统配置写入' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ADMIN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='创建或更新系统配置项' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:01' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 4516
+#260315 19:56:01 server id 1  end_log_pos 4600 CRC32 0xa6c12bc4 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 4600
+#260315 19:56:01 server id 1  end_log_pos 4876 CRC32 0x3c6b82cb 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92010 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN_AUDIT_READ' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='å®¡è®¡æ—¥å¿—è¯»å–' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ADMIN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='æŸ¥è¯¢ç®¡ç†å‘˜å®¡è®¡æ—¥å¿—' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92010 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='ADMIN_AUDIT_READ' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='审计日志读取' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ADMIN' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='查询管理员审计日志' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:01' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 4876
+#260315 19:56:01 server id 1  end_log_pos 4960 CRC32 0xf4547bde 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 4960
+#260315 19:56:01 server id 1  end_log_pos 5217 CRC32 0x604da35e 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92011 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='EXAM_CREATE' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='è€ƒè¯•åˆ›å»º' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='EXAM' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='åˆ›å»ºè€ƒè¯•å¹¶è®¾ç½®æ—¶é—´çª—' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92011 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='EXAM_CREATE' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='考试创建' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='EXAM' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='创建考试并设置时间窗' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:01' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 5217
+#260315 19:56:02 server id 1  end_log_pos 5301 CRC32 0xda757d93 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 5301
+#260315 19:56:02 server id 1  end_log_pos 5553 CRC32 0x1d414cb5 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92012 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='EXAM_SESSION_START' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='è€ƒè¯•ä¼šè¯å¼€å§‹' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='EXAM' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='å¼€å§‹è€ƒè¯•ä¼šè¯' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92012 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='EXAM_SESSION_START' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='考试会话开始' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='EXAM' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='开始考试会话' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:02' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 5553
+#260315 19:56:02 server id 1  end_log_pos 5637 CRC32 0x90fecd14 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 5637
+#260315 19:56:02 server id 1  end_log_pos 5901 CRC32 0xab2f0c27 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92013 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='EXAM_ANSWER_SAVE' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='è€ƒè¯•ç­”æ¡ˆä¿å­˜' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='EXAM' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='ä¿å­˜è€ƒè¯•ä¼šè¯ç­”æ¡ˆ' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92013 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='EXAM_ANSWER_SAVE' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='考试答案保存' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='EXAM' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='保存考试会话答案' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:02' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 5901
+#260315 19:56:02 server id 1  end_log_pos 5985 CRC32 0xa1aa8584 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 5985
+#260315 19:56:02 server id 1  end_log_pos 6235 CRC32 0xee3e90cc 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92014 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='EXAM_SESSION_SUBMIT' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='è€ƒè¯•ä¼šè¯æäº¤' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='EXAM' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='æäº¤è€ƒè¯•ä¼šè¯' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92014 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='EXAM_SESSION_SUBMIT' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='考试会话提交' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='EXAM' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='提交考试会话' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:02' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 6235
+#260315 19:56:02 server id 1  end_log_pos 6319 CRC32 0xcd843cef 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 6319
+#260315 19:56:02 server id 1  end_log_pos 6589 CRC32 0x1cb0f750 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92015 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='GRADING_TASK_VIEW' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='é˜…å·ä»»åŠ¡æŸ¥çœ‹' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='GRADING' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='æŸ¥è¯¢é˜…å·ä»»åŠ¡åˆ—è¡¨' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92015 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='GRADING_TASK_VIEW' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='阅卷任务查看' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='GRADING' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='查询阅卷任务列表' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:02' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 6589
+#260315 19:56:03 server id 1  end_log_pos 6673 CRC32 0xb3677669 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 6673
+#260315 19:56:03 server id 1  end_log_pos 6960 CRC32 0x7cb35061 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92016 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='GRADING_MANUAL_SCORE' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='äººå·¥é˜…å·è¯„åˆ†' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='GRADING' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='æäº¤ä¸»è§‚é¢˜äººå·¥è¯„åˆ†' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92016 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='GRADING_MANUAL_SCORE' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='人工阅卷评分' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='GRADING' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='提交主观题人工评分' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:03' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 6960
+#260315 19:56:03 server id 1  end_log_pos 7044 CRC32 0x5f3499ef 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 7044
+#260315 19:56:03 server id 1  end_log_pos 7287 CRC32 0xbc33016b 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92017 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='QUESTION_CREATE' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='é¢˜ç›®å½•å…¥' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='QUESTION' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='åˆ›å»ºé¢˜ç›®å¹¶è½åº“' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92017 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='QUESTION_CREATE' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='题目录入' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='QUESTION' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='创建题目并落库' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:03' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 7287
+#260315 19:56:03 server id 1  end_log_pos 7371 CRC32 0x55c9f348 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 7371
+#260315 19:56:03 server id 1  end_log_pos 7618 CRC32 0x8f5abdb5 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92018 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='QUESTION_LIST' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='é¢˜ç›®åˆ—è¡¨è¯»å–' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='QUESTION' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='æŸ¥è¯¢é¢˜ç›®åˆ—è¡¨' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92018 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='QUESTION_LIST' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='题目列表读取' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='QUESTION' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='查询题目列表' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:03' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 7618
+#260315 19:56:04 server id 1  end_log_pos 7702 CRC32 0x0f61bd35 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 7702
+#260315 19:56:04 server id 1  end_log_pos 7953 CRC32 0xd4089629 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92019 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='QUESTION_DETAIL' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='é¢˜ç›®è¯¦æƒ…è¯»å–' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='QUESTION' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='æŸ¥è¯¢é¢˜ç›®è¯¦æƒ…' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92019 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='QUESTION_DETAIL' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='题目详情读取' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='QUESTION' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='查询题目详情' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:04' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 7953
+#260315 19:56:04 server id 1  end_log_pos 8037 CRC32 0x93312c62 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 8037
+#260315 19:56:04 server id 1  end_log_pos 8292 CRC32 0x523c3b5c 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92020 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='PAPER_CREATE' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='è¯•å·åˆ›å»º' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='QUESTION' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='åˆ›å»ºè¯•å·å¹¶ç»‘å®šé¢˜ç›®' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92020 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='PAPER_CREATE' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='试卷创建' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='QUESTION' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='创建试卷并绑定题目' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:04' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 8292
+#260315 19:56:05 server id 1  end_log_pos 8376 CRC32 0xd86d03e2 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 8376
+#260315 19:56:05 server id 1  end_log_pos 8621 CRC32 0x1da84ad4 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92021 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='PAPER_DETAIL' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='è¯•å·è¯¦æƒ…è¯»å–' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='QUESTION' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='æŸ¥è¯¢è¯•å·è¯¦æƒ…' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92021 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='PAPER_DETAIL' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='试卷详情读取' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='QUESTION' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='查询试卷详情' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:05' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 8621
+#260315 19:56:05 server id 1  end_log_pos 8705 CRC32 0xae8e607b 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 8705
+#260315 19:56:05 server id 1  end_log_pos 9044 CRC32 0x9a9fb154 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92022 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='REPORT_SCORE_DISTRIBUTION_VIEW' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='åˆ†æ•°åˆ†å¸ƒæŠ¥è¡¨è¯»å–' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ANALYSIS' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='æŸ¥è¯¢è€ƒè¯•åˆ†æ•°åˆ†å¸ƒæŠ¥è¡¨' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92022 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='REPORT_SCORE_DISTRIBUTION_VIEW' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='分数分布报表读取' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ANALYSIS' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='查询考试分数分布报表' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:05' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 9044
+#260315 19:56:05 server id 1  end_log_pos 9128 CRC32 0xbb749c0e 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 9128
+#260315 19:56:05 server id 1  end_log_pos 9473 CRC32 0xfd836f02 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92023 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='REPORT_QUESTION_ACCURACY_VIEW' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='é¢˜ç›®æ­£ç¡®çŽ‡æŠ¥è¡¨è¯»å–' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ANALYSIS' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='æŸ¥è¯¢é¢˜ç›®æ­£ç¡®çŽ‡ TopN æŠ¥è¡¨' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92023 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='REPORT_QUESTION_ACCURACY_VIEW' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='题目正确率报表读取' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='ANALYSIS' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='查询题目正确率 TopN 报表' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:05' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 9473
+#260315 19:56:05 server id 1  end_log_pos 9557 CRC32 0xe0ca7ffe 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 9557
+#260315 19:56:05 server id 1  end_log_pos 9841 CRC32 0x914f3f11 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92024 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='USER_SELF_VIEW' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='ä¸ªäººèµ„æ–™è¯»å–' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='USER' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='æŸ¥è¯¢å½“å‰ç™»å½•ç”¨æˆ·èµ„æ–™' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92024 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='USER_SELF_VIEW' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='个人资料读取' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='USER' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='查询当前登录用户资料' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:05' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 9841
+#260315 19:56:06 server id 1  end_log_pos 9925 CRC32 0x6ef71d82 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 9925
+#260315 19:56:06 server id 1  end_log_pos 10188 CRC32 0x09a2d5ea 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92025 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='USER_PROFILE_VIEW' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='ç”¨æˆ·è¯¦æƒ…è¯»å–' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='USER' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='æŒ‰ç”¨æˆ·IDæŸ¥è¯¢èµ„æ–™' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92025 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='USER_PROFILE_VIEW' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='用户详情读取' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='USER' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='按用户ID查询资料' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:06' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 10188
+#260315 19:56:06 server id 1  end_log_pos 10272 CRC32 0x1f9dc3c2 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 10272
+#260315 19:56:06 server id 1  end_log_pos 10513 CRC32 0x0d8dc0ca 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92026 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='USER_LIST_VIEW' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='ç”¨æˆ·åˆ—è¡¨è¯»å–' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='USER' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='æŸ¥è¯¢ç”¨æˆ·åˆ—è¡¨' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92026 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='USER_LIST_VIEW' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='用户列表读取' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='USER' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='查询用户列表' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:06' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 10513
+#260315 19:56:07 server id 1  end_log_pos 10597 CRC32 0x169820c4 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 10597
+#260315 19:56:07 server id 1  end_log_pos 10940 CRC32 0x6a0c6dd1 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92027 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='EXAM_ANTI_CHEAT_EVENT_REPORT' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='é˜²ä½œå¼Šäº‹ä»¶ä¸ŠæŠ¥' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='EXAM' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='ä¸ŠæŠ¥è€ƒè¯•è¿‡ç¨‹é˜²ä½œå¼Šé£Žé™©äº‹ä»¶' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92027 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='EXAM_ANTI_CHEAT_EVENT_REPORT' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='防作弊事件上报' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='EXAM' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='上报考试过程防作弊风险事件' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:07' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 10940
+#260315 19:56:07 server id 1  end_log_pos 11024 CRC32 0xc99413e0 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 11024
+#260315 19:56:07 server id 1  end_log_pos 11382 CRC32 0x5b49bb10 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92028 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='EXAM_ANTI_CHEAT_RISK_VIEW' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='é˜²ä½œå¼Šé£Žé™©æŸ¥çœ‹' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='EXAM' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='æŸ¥çœ‹è€ƒè¯•ä¼šè¯é£Žé™©è¯„åˆ†ä¸Žäº‹ä»¶æ˜Žç»†' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92028 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='EXAM_ANTI_CHEAT_RISK_VIEW' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='防作弊风险查看' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='EXAM' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='查看考试会话风险评分与事件明细' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:07' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 11382
+#260315 19:56:08 server id 1  end_log_pos 11466 CRC32 0xd319331d 	Table_map: `admin_db`.`sys_permission` mapped to number 90
+# has_generated_invisible_primary_key=0
+# at 11466
+#260315 19:56:08 server id 1  end_log_pos 11786 CRC32 0x2ef96ef9 	Update_rows: table id 90 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_permission`
+### WHERE
+###   @1=92029 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='STUDENT_RESULT_VIEW' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='å­¦ç”Ÿæˆç»©è§£æžæŸ¥çœ‹' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='GRADING' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='æŸ¥çœ‹æœ¬äººè€ƒè¯•æˆç»©ä¸Žè§£æž' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1=92029 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='STUDENT_RESULT_VIEW' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @3='学生成绩解析查看' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @4='GRADING' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @5='查看本人考试成绩与解析' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @6=1 /* TINYINT meta=0 nullable=0 is_null=0 */
+###   @7='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+###   @8='2026-03-15 19:56:08' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 11786
+#260315 19:56:08 server id 1  end_log_pos 11862 CRC32 0x1133b07c 	Table_map: `admin_db`.`sys_config` mapped to number 98
+# has_generated_invisible_primary_key=0
+# at 11862
+#260315 19:56:08 server id 1  end_log_pos 12147 CRC32 0xb70c314c 	Update_rows: table id 98 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_config`
+### WHERE
+###   @1='ADMIN_PASSWORD_RESET_MIN_LENGTH' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @2='8' /* BLOB/TEXT meta=2 nullable=0 is_null=0 */
+###   @3='SECURITY' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @4='ç®¡ç†å‘˜é‡ç½®å¯†ç æœ€å°é•¿åº¦ç­–ç•¥' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @5=10001 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @6='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1='ADMIN_PASSWORD_RESET_MIN_LENGTH' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @2='8' /* BLOB/TEXT meta=2 nullable=0 is_null=0 */
+###   @3='SECURITY' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @4='管理员重置密码最小长度策略' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @5=10001 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @6='2026-03-15 19:56:08' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 12147
+#260315 19:56:08 server id 1  end_log_pos 12223 CRC32 0xcbde1c03 	Table_map: `admin_db`.`sys_config` mapped to number 98
+# has_generated_invisible_primary_key=0
+# at 12223
+#260315 19:56:08 server id 1  end_log_pos 12559 CRC32 0x495c1732 	Update_rows: table id 98 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_config`
+### WHERE
+###   @1='ADMIN_AUDIT_RETENTION_DAYS' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @2='180' /* BLOB/TEXT meta=2 nullable=0 is_null=0 */
+###   @3='SECURITY' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @4='å®¡è®¡æ—¥å¿—ä¿ç•™å¤©æ•°ï¼ˆå»ºè®®æŒ‰å½’æ¡£ç­–ç•¥æ‰§è¡Œï¼‰' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @5=10001 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @6='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1='ADMIN_AUDIT_RETENTION_DAYS' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @2='180' /* BLOB/TEXT meta=2 nullable=0 is_null=0 */
+###   @3='SECURITY' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @4='审计日志保留天数（建议按归档策略执行）' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @5=10001 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @6='2026-03-15 19:56:08' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 12559
+#260315 19:56:09 server id 1  end_log_pos 12635 CRC32 0x376e66c3 	Table_map: `admin_db`.`sys_config` mapped to number 98
+# has_generated_invisible_primary_key=0
+# at 12635
+#260315 19:56:09 server id 1  end_log_pos 12913 CRC32 0x77416f06 	Update_rows: table id 98 flags: STMT_END_F
+### UPDATE `admin_db`.`sys_config`
+### WHERE
+###   @1='ADMIN_OVERVIEW_CACHE_SECONDS' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @2='30' /* BLOB/TEXT meta=2 nullable=0 is_null=0 */
+###   @3='PERFORMANCE' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @4='ç®¡ç†å‘˜æ¦‚è§ˆç¼“å­˜æ—¶é—´ï¼ˆç§’ï¼‰' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @5=10001 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @6='2026-03-15 00:13:33' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+### SET
+###   @1='ADMIN_OVERVIEW_CACHE_SECONDS' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @2='30' /* BLOB/TEXT meta=2 nullable=0 is_null=0 */
+###   @3='PERFORMANCE' /* VARSTRING(256) meta=256 nullable=0 is_null=0 */
+###   @4='管理员概览缓存时间（秒）' /* VARSTRING(1020) meta=1020 nullable=1 is_null=0 */
+###   @5=10001 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @6='2026-03-15 19:56:09' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 12913
+#260315 19:56:09 server id 1  end_log_pos 12944 CRC32 0xdd782d77 	Xid = 21171
+COMMIT/*!*/;
+# at 12944
+#260315 20:43:23 server id 1  end_log_pos 13023 CRC32 0x76e29e8b 	Anonymous_GTID	last_committed=1	sequence_number=2	rbr_only=yes	original_committed_timestamp=1773578603493398	immediate_commit_timestamp=1773578603493398	transaction_length=1754
+/*!50718 SET TRANSACTION ISOLATION LEVEL READ COMMITTED*//*!*/;
+# original_commit_timestamp=1773578603493398 (2026-03-15 20:43:23.493398 CST)
+# immediate_commit_timestamp=1773578603493398 (2026-03-15 20:43:23.493398 CST)
+/*!80001 SET @@session.original_commit_timestamp=1773578603493398*//*!*/;
+/*!80014 SET @@session.original_server_version=80045*//*!*/;
+/*!80014 SET @@session.immediate_server_version=80045*//*!*/;
+SET @@SESSION.GTID_NEXT= 'ANONYMOUS'/*!*/;
+# at 13023
+#260315 20:43:23 server id 1  end_log_pos 13113 CRC32 0xd86585a9 	Query	thread_id=1837	exec_time=0	error_code=0
+SET TIMESTAMP=1773578603/*!*/;
+BEGIN
+/*!*/;
+# at 13113
+#260315 20:43:23 server id 1  end_log_pos 13184 CRC32 0x2b15755b 	Table_map: `question_db`.`q_paper` mapped to number 94
+# has_generated_invisible_primary_key=0
+# at 13184
+#260315 20:43:23 server id 1  end_log_pos 13257 CRC32 0x0acbf33b 	Write_rows: table id 94 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper`
+### SET
+###   @1=291551957565448192 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='对的' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @3=100 /* INT meta=0 nullable=0 is_null=0 */
+###   @4=90 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=10001 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @6='2026-03-15 20:43:23' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 13257
+#260315 20:43:23 server id 1  end_log_pos 13330 CRC32 0xd0635cfb 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 13330
+#260315 20:43:23 server id 1  end_log_pos 13398 CRC32 0xec1dcb32 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=1 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291551957565448192 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020200 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=1 /* INT meta=0 nullable=0 is_null=0 */
+# at 13398
+#260315 20:43:23 server id 1  end_log_pos 13471 CRC32 0x460b4740 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 13471
+#260315 20:43:23 server id 1  end_log_pos 13539 CRC32 0x7cc637d1 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=2 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291551957565448192 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020199 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=2 /* INT meta=0 nullable=0 is_null=0 */
+# at 13539
+#260315 20:43:23 server id 1  end_log_pos 13612 CRC32 0x55d654f2 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 13612
+#260315 20:43:23 server id 1  end_log_pos 13680 CRC32 0x209fc1a9 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=3 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291551957565448192 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020198 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=3 /* INT meta=0 nullable=0 is_null=0 */
+# at 13680
+#260315 20:43:23 server id 1  end_log_pos 13753 CRC32 0x2d36eac0 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 13753
+#260315 20:43:23 server id 1  end_log_pos 13821 CRC32 0x30d0e22f 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=4 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291551957565448192 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020197 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=4 /* INT meta=0 nullable=0 is_null=0 */
+# at 13821
+#260315 20:43:23 server id 1  end_log_pos 13894 CRC32 0xe890a272 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 13894
+#260315 20:43:23 server id 1  end_log_pos 13962 CRC32 0xf21be8f8 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=5 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291551957565448192 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020196 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=5 /* INT meta=0 nullable=0 is_null=0 */
+# at 13962
+#260315 20:43:23 server id 1  end_log_pos 14035 CRC32 0x90701c40 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 14035
+#260315 20:43:23 server id 1  end_log_pos 14103 CRC32 0x5948128e 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=6 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291551957565448192 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020195 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=6 /* INT meta=0 nullable=0 is_null=0 */
+# at 14103
+#260315 20:43:23 server id 1  end_log_pos 14176 CRC32 0x83ad0ff2 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 14176
+#260315 20:43:23 server id 1  end_log_pos 14244 CRC32 0xaac8fef1 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=7 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291551957565448192 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020194 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=7 /* INT meta=0 nullable=0 is_null=0 */
+# at 14244
+#260315 20:43:23 server id 1  end_log_pos 14317 CRC32 0x15c51449 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 14317
+#260315 20:43:23 server id 1  end_log_pos 14385 CRC32 0xbe4ad8b1 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=8 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291551957565448192 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020193 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=8 /* INT meta=0 nullable=0 is_null=0 */
+# at 14385
+#260315 20:43:23 server id 1  end_log_pos 14458 CRC32 0x73690a64 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 14458
+#260315 20:43:23 server id 1  end_log_pos 14526 CRC32 0x0a8d77d0 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=9 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291551957565448192 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020192 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=9 /* INT meta=0 nullable=0 is_null=0 */
+# at 14526
+#260315 20:43:23 server id 1  end_log_pos 14599 CRC32 0xd8e3dad0 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 14599
+#260315 20:43:23 server id 1  end_log_pos 14667 CRC32 0xb8afd0cd 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=10 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291551957565448192 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020191 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=10 /* INT meta=0 nullable=0 is_null=0 */
+# at 14667
+#260315 20:43:23 server id 1  end_log_pos 14698 CRC32 0xbd995c04 	Xid = 23174
+COMMIT/*!*/;
+# at 14698
+#260315 20:43:52 server id 1  end_log_pos 14777 CRC32 0xb93ba0cc 	Anonymous_GTID	last_committed=2	sequence_number=3	rbr_only=yes	original_committed_timestamp=1773578632136112	immediate_commit_timestamp=1773578632136112	transaction_length=1754
+/*!50718 SET TRANSACTION ISOLATION LEVEL READ COMMITTED*//*!*/;
+# original_commit_timestamp=1773578632136112 (2026-03-15 20:43:52.136112 CST)
+# immediate_commit_timestamp=1773578632136112 (2026-03-15 20:43:52.136112 CST)
+/*!80001 SET @@session.original_commit_timestamp=1773578632136112*//*!*/;
+/*!80014 SET @@session.original_server_version=80045*//*!*/;
+/*!80014 SET @@session.immediate_server_version=80045*//*!*/;
+SET @@SESSION.GTID_NEXT= 'ANONYMOUS'/*!*/;
+# at 14777
+#260315 20:43:52 server id 1  end_log_pos 14867 CRC32 0xcba2e756 	Query	thread_id=1837	exec_time=0	error_code=0
+SET TIMESTAMP=1773578632/*!*/;
+BEGIN
+/*!*/;
+# at 14867
+#260315 20:43:52 server id 1  end_log_pos 14938 CRC32 0x1fbe7986 	Table_map: `question_db`.`q_paper` mapped to number 94
+# has_generated_invisible_primary_key=0
+# at 14938
+#260315 20:43:52 server id 1  end_log_pos 15011 CRC32 0x976e55f8 	Write_rows: table id 94 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper`
+### SET
+###   @1=291552077707091968 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='对的' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @3=100 /* INT meta=0 nullable=0 is_null=0 */
+###   @4=90 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=10001 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @6='2026-03-15 20:43:52' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 15011
+#260315 20:43:52 server id 1  end_log_pos 15084 CRC32 0x715dbf67 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 15084
+#260315 20:43:52 server id 1  end_log_pos 15152 CRC32 0xf7f9fcf3 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=11 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291552077707091968 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020200 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=1 /* INT meta=0 nullable=0 is_null=0 */
+# at 15152
+#260315 20:43:52 server id 1  end_log_pos 15225 CRC32 0x2bbeb245 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 15225
+#260315 20:43:52 server id 1  end_log_pos 15293 CRC32 0xcff69bea 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=12 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291552077707091968 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020199 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=2 /* INT meta=0 nullable=0 is_null=0 */
+# at 15293
+#260315 20:43:52 server id 1  end_log_pos 15366 CRC32 0x7717ef3f 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 15366
+#260315 20:43:52 server id 1  end_log_pos 15434 CRC32 0xdfcaf3e2 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=13 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291552077707091968 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020198 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=3 /* INT meta=0 nullable=0 is_null=0 */
+# at 15434
+#260315 20:43:52 server id 1  end_log_pos 15507 CRC32 0x0ff7510d 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 15507
+#260315 20:43:52 server id 1  end_log_pos 15575 CRC32 0xabfbcbb5 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=14 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291552077707091968 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020197 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=4 /* INT meta=0 nullable=0 is_null=0 */
+# at 15575
+#260315 20:43:52 server id 1  end_log_pos 15648 CRC32 0x1c2a42bf 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 15648
+#260315 20:43:52 server id 1  end_log_pos 15716 CRC32 0xdc4a3e3b 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=15 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291552077707091968 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020196 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=5 /* INT meta=0 nullable=0 is_null=0 */
+# at 15716
+#260315 20:43:52 server id 1  end_log_pos 15789 CRC32 0x8a425904 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 15789
+#260315 20:43:52 server id 1  end_log_pos 15857 CRC32 0x9bad1ef6 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=16 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291552077707091968 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020195 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=6 /* INT meta=0 nullable=0 is_null=0 */
+# at 15857
+#260315 20:43:52 server id 1  end_log_pos 15930 CRC32 0xaf8c15a8 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 15930
+#260315 20:43:52 server id 1  end_log_pos 15998 CRC32 0x78489dc5 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=17 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291552077707091968 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020194 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=7 /* INT meta=0 nullable=0 is_null=0 */
+# at 15998
+#260315 20:43:52 server id 1  end_log_pos 16071 CRC32 0x3704af84 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 16071
+#260315 20:43:52 server id 1  end_log_pos 16139 CRC32 0x79261c93 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=18 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291552077707091968 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020193 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=8 /* INT meta=0 nullable=0 is_null=0 */
+# at 16139
+#260315 20:43:52 server id 1  end_log_pos 16212 CRC32 0x2099ca54 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 16212
+#260315 20:43:52 server id 1  end_log_pos 16280 CRC32 0xa14ef31a 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=19 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291552077707091968 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020192 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=9 /* INT meta=0 nullable=0 is_null=0 */
+# at 16280
+#260315 20:43:52 server id 1  end_log_pos 16353 CRC32 0x5c390204 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 16353
+#260315 20:43:52 server id 1  end_log_pos 16421 CRC32 0x4c595725 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=20 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291552077707091968 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020191 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=10 /* INT meta=0 nullable=0 is_null=0 */
+# at 16421
+#260315 20:43:52 server id 1  end_log_pos 16452 CRC32 0x7207d327 	Xid = 23220
+COMMIT/*!*/;
+# at 16452
+#260315 20:45:07 server id 1  end_log_pos 16531 CRC32 0xf639995a 	Anonymous_GTID	last_committed=3	sequence_number=4	rbr_only=yes	original_committed_timestamp=1773578707854482	immediate_commit_timestamp=1773578707854482	transaction_length=1754
+/*!50718 SET TRANSACTION ISOLATION LEVEL READ COMMITTED*//*!*/;
+# original_commit_timestamp=1773578707854482 (2026-03-15 20:45:07.854482 CST)
+# immediate_commit_timestamp=1773578707854482 (2026-03-15 20:45:07.854482 CST)
+/*!80001 SET @@session.original_commit_timestamp=1773578707854482*//*!*/;
+/*!80014 SET @@session.original_server_version=80045*//*!*/;
+/*!80014 SET @@session.immediate_server_version=80045*//*!*/;
+SET @@SESSION.GTID_NEXT= 'ANONYMOUS'/*!*/;
+# at 16531
+#260315 20:45:07 server id 1  end_log_pos 16621 CRC32 0x945d2d83 	Query	thread_id=1837	exec_time=0	error_code=0
+SET TIMESTAMP=1773578707/*!*/;
+BEGIN
+/*!*/;
+# at 16621
+#260315 20:45:07 server id 1  end_log_pos 16692 CRC32 0x737747b0 	Table_map: `question_db`.`q_paper` mapped to number 94
+# has_generated_invisible_primary_key=0
+# at 16692
+#260315 20:45:07 server id 1  end_log_pos 16765 CRC32 0x4064f85b 	Write_rows: table id 94 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper`
+### SET
+###   @1=291552395358511104 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2='对的' /* VARSTRING(512) meta=512 nullable=0 is_null=0 */
+###   @3=100 /* INT meta=0 nullable=0 is_null=0 */
+###   @4=90 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=10001 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @6='2026-03-15 20:45:08' /* DATETIME(0) meta=0 nullable=0 is_null=0 */
+# at 16765
+#260315 20:45:07 server id 1  end_log_pos 16838 CRC32 0x47f4fce8 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 16838
+#260315 20:45:07 server id 1  end_log_pos 16906 CRC32 0x98d8da5b 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=21 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291552395358511104 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020200 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=1 /* INT meta=0 nullable=0 is_null=0 */
+# at 16906
+#260315 20:45:07 server id 1  end_log_pos 16979 CRC32 0x591097ea 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 16979
+#260315 20:45:07 server id 1  end_log_pos 17047 CRC32 0xc4a9a693 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=22 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291552395358511104 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020199 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=2 /* INT meta=0 nullable=0 is_null=0 */
+# at 17047
+#260315 20:45:07 server id 1  end_log_pos 17120 CRC32 0x68ce3748 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 17120
+#260315 20:45:07 server id 1  end_log_pos 17188 CRC32 0xb318531d 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=23 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291552395358511104 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020198 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=3 /* INT meta=0 nullable=0 is_null=0 */
+# at 17188
+#260315 20:45:07 server id 1  end_log_pos 17261 CRC32 0xdca59fe3 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 17261
+#260315 20:45:07 server id 1  end_log_pos 17329 CRC32 0xb2f5c6e9 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=24 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291552395358511104 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020197 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=4 /* INT meta=0 nullable=0 is_null=0 */
+# at 17329
+#260315 20:45:07 server id 1  end_log_pos 17402 CRC32 0x9f6f067f 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 17402
+#260315 20:45:07 server id 1  end_log_pos 17470 CRC32 0x2c4728dd 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=25 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291552395358511104 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020196 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=5 /* INT meta=0 nullable=0 is_null=0 */
+# at 17470
+#260315 20:45:07 server id 1  end_log_pos 17543 CRC32 0xf8ec7cab 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 17543
+#260315 20:45:07 server id 1  end_log_pos 17611 CRC32 0x985f4c9d 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=26 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291552395358511104 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020195 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=6 /* INT meta=0 nullable=0 is_null=0 */
+# at 17611
+#260315 20:45:07 server id 1  end_log_pos 17684 CRC32 0xef71197b 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 17684
+#260315 20:45:07 server id 1  end_log_pos 17752 CRC32 0xc406bae5 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=27 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291552395358511104 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020194 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=7 /* INT meta=0 nullable=0 is_null=0 */
+# at 17752
+#260315 20:45:07 server id 1  end_log_pos 17825 CRC32 0x93d1d12b 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 17825
+#260315 20:45:07 server id 1  end_log_pos 17893 CRC32 0x2fe1b381 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=28 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291552395358511104 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020193 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=8 /* INT meta=0 nullable=0 is_null=0 */
+# at 17893
+#260315 20:45:07 server id 1  end_log_pos 17966 CRC32 0x5897380e 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 17966
+#260315 20:45:07 server id 1  end_log_pos 18034 CRC32 0x3eb2b294 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=29 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291552395358511104 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020192 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=9 /* INT meta=0 nullable=0 is_null=0 */
+# at 18034
+#260315 20:45:07 server id 1  end_log_pos 18107 CRC32 0x2077863c 	Table_map: `question_db`.`q_paper_question` mapped to number 100
+# has_generated_invisible_primary_key=0
+# at 18107
+#260315 20:45:07 server id 1  end_log_pos 18175 CRC32 0x862f8a44 	Write_rows: table id 100 flags: STMT_END_F
+### INSERT INTO `question_db`.`q_paper_question`
+### SET
+###   @1=30 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @2=291552395358511104 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @3=760000020191 /* LONGINT meta=0 nullable=0 is_null=0 */
+###   @4=10 /* INT meta=0 nullable=0 is_null=0 */
+###   @5=10 /* INT meta=0 nullable=0 is_null=0 */
+# at 18175
+#260315 20:45:07 server id 1  end_log_pos 18206 CRC32 0xee05cc28 	Xid = 23269
+COMMIT/*!*/;
+# at 18206
+#260315 21:26:35 server id 1  end_log_pos 18285 CRC32 0xd578f600 	Anonymous_GTID	last_committed=4	sequence_number=5	rbr_only=no	original_committed_timestamp=1773581195725781	immediate_commit_timestamp=1773581195725781	transaction_length=275
+# original_commit_timestamp=1773581195725781 (2026-03-15 21:26:35.725781 CST)
+# immediate_commit_timestamp=1773581195725781 (2026-03-15 21:26:35.725781 CST)
+/*!80001 SET @@session.original_commit_timestamp=1773581195725781*//*!*/;
+/*!80014 SET @@session.original_server_version=80045*//*!*/;
+/*!80014 SET @@session.immediate_server_version=80045*//*!*/;
+SET @@SESSION.GTID_NEXT= 'ANONYMOUS'/*!*/;
+# at 18285
+#260315 21:26:35 server id 1  end_log_pos 18481 CRC32 0xc45b365c 	Query	thread_id=1986	exec_time=0	error_code=0	Xid = 24414
+use `question_db`/*!*/;
+SET TIMESTAMP=1773581195/*!*/;
+CREATE INDEX idx_q_question_type_created_at ON question_db.q_question (type, created_at)
+/*!*/;
+# at 18481
+#260315 21:26:35 server id 1  end_log_pos 18560 CRC32 0x07a1d82d 	Anonymous_GTID	last_committed=5	sequence_number=6	rbr_only=no	original_committed_timestamp=1773581195869329	immediate_commit_timestamp=1773581195869329	transaction_length=297
+# original_commit_timestamp=1773581195869329 (2026-03-15 21:26:35.869329 CST)
+# immediate_commit_timestamp=1773581195869329 (2026-03-15 21:26:35.869329 CST)
+/*!80001 SET @@session.original_commit_timestamp=1773581195869329*//*!*/;
+/*!80014 SET @@session.original_server_version=80045*//*!*/;
+/*!80014 SET @@session.immediate_server_version=80045*//*!*/;
+SET @@SESSION.GTID_NEXT= 'ANONYMOUS'/*!*/;
+# at 18560
+#260315 21:26:35 server id 1  end_log_pos 18778 CRC32 0x57897b56 	Query	thread_id=1986	exec_time=0	error_code=0	Xid = 24418
+SET TIMESTAMP=1773581195/*!*/;
+CREATE INDEX idx_q_question_knowledge_point_created_at ON question_db.q_question (knowledge_point, created_at)
+/*!*/;
+# at 18778
+#260315 21:26:35 server id 1  end_log_pos 18857 CRC32 0x281585c8 	Anonymous_GTID	last_committed=6	sequence_number=7	rbr_only=no	original_committed_timestamp=1773581196051945	immediate_commit_timestamp=1773581196051945	transaction_length=298
+# original_commit_timestamp=1773581196051945 (2026-03-15 21:26:36.051945 CST)
+# immediate_commit_timestamp=1773581196051945 (2026-03-15 21:26:36.051945 CST)
+/*!80001 SET @@session.original_commit_timestamp=1773581196051945*//*!*/;
+/*!80014 SET @@session.original_server_version=80045*//*!*/;
+/*!80014 SET @@session.immediate_server_version=80045*//*!*/;
+SET @@SESSION.GTID_NEXT= 'ANONYMOUS'/*!*/;
+# at 18857
+#260315 21:26:35 server id 1  end_log_pos 19076 CRC32 0x9c83e595 	Query	thread_id=1986	exec_time=1	error_code=0	Xid = 24422
+SET TIMESTAMP=1773581195/*!*/;
+CREATE INDEX idx_q_question_created_by_type_created_at ON question_db.q_question (created_by, type, created_at)
+/*!*/;
+# at 19076
+#260315 21:26:36 server id 1  end_log_pos 19155 CRC32 0x20e87ec4 	Anonymous_GTID	last_committed=7	sequence_number=8	rbr_only=no	original_committed_timestamp=1773581196216741	immediate_commit_timestamp=1773581196216741	transaction_length=320
+# original_commit_timestamp=1773581196216741 (2026-03-15 21:26:36.216741 CST)
+# immediate_commit_timestamp=1773581196216741 (2026-03-15 21:26:36.216741 CST)
+/*!80001 SET @@session.original_commit_timestamp=1773581196216741*//*!*/;
+/*!80014 SET @@session.original_server_version=80045*//*!*/;
+/*!80014 SET @@session.immediate_server_version=80045*//*!*/;
+SET @@SESSION.GTID_NEXT= 'ANONYMOUS'/*!*/;
+# at 19155
+#260315 21:26:36 server id 1  end_log_pos 19396 CRC32 0xaf809227 	Query	thread_id=1986	exec_time=0	error_code=0	Xid = 24426
+SET TIMESTAMP=1773581196/*!*/;
+CREATE INDEX idx_q_question_created_by_knowledge_point_created_at ON question_db.q_question (created_by, knowledge_point, created_at)
+/*!*/;
+# at 19396
+#260316  5:00:32 server id 1  end_log_pos 19473 CRC32 0x8394e93f 	Anonymous_GTID	last_committed=8	sequence_number=9	rbr_only=no	original_committed_timestamp=1773608432987302	immediate_commit_timestamp=1773608432987302	transaction_length=229
+# original_commit_timestamp=1773608432987302 (2026-03-16 05:00:32.987302 CST)
+# immediate_commit_timestamp=1773608432987302 (2026-03-16 05:00:32.987302 CST)
+/*!80001 SET @@session.original_commit_timestamp=1773608432987302*//*!*/;
+/*!80014 SET @@session.original_server_version=80045*//*!*/;
+/*!80014 SET @@session.immediate_server_version=80045*//*!*/;
+SET @@SESSION.GTID_NEXT= 'ANONYMOUS'/*!*/;
+BEGIN /*added by mysqlbinlog */ /*!*/;
+ROLLBACK /* added by mysqlbinlog */ /*!*/;
+SET @@SESSION.GTID_NEXT= 'AUTOMATIC' /* added by mysqlbinlog */ /*!*/;
+DELIMITER ;
+# End of log file
+/*!50003 SET COMPLETION_TYPE=@OLD_COMPLETION_TYPE*/;
+/*!50530 SET @@SESSION.PSEUDO_SLAVE_MODE=0*/;
