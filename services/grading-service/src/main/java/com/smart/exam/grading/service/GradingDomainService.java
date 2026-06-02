@@ -65,6 +65,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -74,6 +75,7 @@ public class GradingDomainService {
     private static final BigDecimal ZERO_SCORE = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
     private static final Duration EVENT_DEDUP_TTL = Duration.ofDays(7);
     private static final Duration MANUAL_DEDUP_TTL = Duration.ofSeconds(8);
+    private static final Duration PUBLISH_CONFIRM_TIMEOUT = Duration.ofSeconds(5);
     private static final String EVENT_DEDUP_PREFIX = "grading:event:exam-submitted:";
     private static final String MANUAL_DEDUP_PREFIX = "grading:manual:dedup:";
 
@@ -718,12 +720,35 @@ public class GradingDomainService {
         event.setQuestionScores(questionScores.stream()
                 .map(this::toScorePayload)
                 .toList());
-        rabbitTemplate.convertAndSend(
-                RabbitConfig.EXAM_EXCHANGE,
-                RabbitConfig.SCORE_PUBLISHED_ROUTING_KEY,
-                event,
-                new CorrelationData(event.getEventId())
-        );
+        publishWithConfirm(event);
+    }
+
+    private void publishWithConfirm(ScorePublishedEvent event) {
+        CorrelationData correlationData = new CorrelationData(event.getEventId());
+        try {
+            rabbitTemplate.convertAndSend(
+                    RabbitConfig.EXAM_EXCHANGE,
+                    RabbitConfig.SCORE_PUBLISHED_ROUTING_KEY,
+                    event,
+                    correlationData
+            );
+            CorrelationData.Confirm confirm = correlationData.getFuture()
+                    .get(PUBLISH_CONFIRM_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+            if (confirm == null || !confirm.isAck()) {
+                String reason = confirm == null ? "confirm missing" : confirm.getReason();
+                throw new BizException(ErrorCode.INTERNAL_ERROR, "Rabbit publish nacked: score published event, " + reason);
+            }
+            if (correlationData.getReturned() != null) {
+                throw new BizException(ErrorCode.INTERNAL_ERROR, "Rabbit publish returned: score published event");
+            }
+        } catch (BizException ex) {
+            throw ex;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new BizException(ErrorCode.INTERNAL_ERROR, "Interrupted while publishing score event");
+        } catch (Exception ex) {
+            throw new BizException(ErrorCode.INTERNAL_ERROR, "Failed to publish score event");
+        }
     }
 
     private ScorePublishedEvent.QuestionScorePayload toScorePayload(QuestionScoreEntity scoreEntity) {

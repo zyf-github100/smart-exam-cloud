@@ -11,3 +11,5 @@ spring:
 smart-exam:
   auth:
     bootstrap-demo-users: false
+    security:
+      default-permissions-enabled: false

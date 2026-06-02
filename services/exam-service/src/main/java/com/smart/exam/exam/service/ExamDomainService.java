@@ -75,6 +75,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class ExamDomainService {
@@ -84,6 +85,7 @@ public class ExamDomainService {
     private static final Duration START_LOCK_TTL = Duration.ofSeconds(8);
     private static final Duration EXAM_CACHE_TTL = Duration.ofMinutes(15);
     private static final Duration CREATE_EXAM_DEDUP_TTL = Duration.ofSeconds(5);
+    private static final Duration PUBLISH_CONFIRM_TIMEOUT = Duration.ofSeconds(5);
     private static final String SUBMIT_LOCK_PREFIX = "exam:submit:lock:";
     private static final String START_LOCK_PREFIX = "exam:start:lock:";
     private static final String EXAM_CACHE_PREFIX = "exam:detail:";
@@ -603,7 +605,7 @@ public class ExamDomainService {
                                                     String userAgent,
                                                     ReportAntiCheatEventRequest request) {
         long sessionLongId = parseLong("sessionId", sessionId);
-        ExamSessionEntity session = getSessionEntity(sessionLongId);
+        ExamSessionEntity session = getSessionEntityForUpdate(sessionLongId);
         if (!String.valueOf(session.getUserId()).equals(userId)) {
             throw new BizException(ErrorCode.FORBIDDEN, "Session does not belong to current user");
         }
@@ -622,7 +624,7 @@ public class ExamDomainService {
             throw new BizException(ErrorCode.BAD_REQUEST, "eventTime is too far in future");
         }
         String eventType = antiCheatRuleEngine.normalizeEventType(request.getEventType());
-        SessionRiskSummaryEntity currentSummary = sessionRiskSummaryMapper.selectById(sessionLongId);
+        SessionRiskSummaryEntity currentSummary = sessionRiskSummaryMapper.selectByIdForUpdate(sessionLongId);
         int eventScore = antiCheatRuleEngine.calculateScore(eventType, exam.getAntiCheatLevel(), currentSummary, eventTime);
 
         SessionRiskEventEntity eventEntity = new SessionRiskEventEntity();
@@ -638,33 +640,25 @@ public class ExamDomainService {
         eventEntity.setCreatedAt(LocalDateTime.now());
         sessionRiskEventMapper.insert(eventEntity);
 
-        boolean insertSummary = currentSummary == null;
-        int riskScore = eventScore;
-        int eventCount = 1;
-        if (insertSummary) {
-            currentSummary = new SessionRiskSummaryEntity();
-            currentSummary.setSessionId(sessionLongId);
-            currentSummary.setExamId(session.getExamId());
-            currentSummary.setUserId(session.getUserId());
-        } else {
-            riskScore += safeInt(currentSummary.getRiskScore());
-            eventCount += safeInt(currentSummary.getEventCount());
-        }
-        currentSummary.setRiskScore(riskScore);
-        currentSummary.setEventCount(eventCount);
-        currentSummary.setRiskLevel(antiCheatRuleEngine.resolveRiskLevel(riskScore));
-        currentSummary.setLastEventType(eventType);
-        currentSummary.setLastEventTime(eventTime);
-        currentSummary.setUpdatedAt(LocalDateTime.now());
-        if (insertSummary) {
-            sessionRiskSummaryMapper.insert(currentSummary);
-        } else {
-            sessionRiskSummaryMapper.updateById(currentSummary);
-        }
+        String initialRiskLevel = antiCheatRuleEngine.resolveRiskLevel(eventScore);
+        LocalDateTime updatedAt = LocalDateTime.now();
+        sessionRiskSummaryMapper.upsertIncrement(
+                sessionLongId,
+                session.getExamId(),
+                session.getUserId(),
+                eventScore,
+                initialRiskLevel,
+                eventType,
+                eventTime,
+                updatedAt,
+                antiCheatProperties.getMediumThreshold(),
+                antiCheatProperties.getHighThreshold(),
+                antiCheatProperties.getCriticalThreshold()
+        );
+        currentSummary = sessionRiskSummaryMapper.selectById(sessionLongId);
 
         if ("SWITCH_SCREEN".equals(eventType)) {
-            session.setSwitchScreenCount(safeInt(session.getSwitchScreenCount()) + 1);
-            examSessionMapper.updateById(session);
+            examSessionMapper.incrementSwitchScreenCount(sessionLongId);
         }
 
         Map<String, Object> payload = new HashMap<>();
@@ -1181,6 +1175,14 @@ public class ExamDomainService {
         return entity;
     }
 
+    private ExamSessionEntity getSessionEntityForUpdate(long sessionId) {
+        ExamSessionEntity entity = examSessionMapper.selectByIdForUpdate(sessionId);
+        if (entity == null) {
+            throw new BizException(ErrorCode.NOT_FOUND, "Exam session not found");
+        }
+        return entity;
+    }
+
     private void protectDuplicateCreate(String userId, CreateExamRequest request) {
         String dedupKey = CREATE_EXAM_DEDUP_PREFIX + userId + ":" + sha256(writeAsJson(request));
         try {
@@ -1231,15 +1233,34 @@ public class ExamDomainService {
         if (rabbitTemplate == null) {
             throw new BizException(ErrorCode.INTERNAL_ERROR, "Message broker is unavailable, submit aborted");
         }
+        CorrelationData correlationData = new CorrelationData(event.getEventId());
         try {
             rabbitTemplate.convertAndSend(
                     RabbitConfig.EXAM_EXCHANGE,
                     RabbitConfig.EXAM_SUBMITTED_ROUTING_KEY,
                     event,
-                    new CorrelationData(event.getEventId())
+                    correlationData
             );
+            waitForRabbitConfirm(correlationData, "exam submitted event");
+        } catch (BizException ex) {
+            throw ex;
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new BizException(ErrorCode.INTERNAL_ERROR, "Interrupted while publishing submit event");
         } catch (Exception ex) {
             throw new BizException(ErrorCode.INTERNAL_ERROR, "Failed to publish submit event");
+        }
+    }
+
+    private void waitForRabbitConfirm(CorrelationData correlationData, String messageName) throws Exception {
+        CorrelationData.Confirm confirm = correlationData.getFuture()
+                .get(PUBLISH_CONFIRM_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
+        if (confirm == null || !confirm.isAck()) {
+            String reason = confirm == null ? "confirm missing" : confirm.getReason();
+            throw new BizException(ErrorCode.INTERNAL_ERROR, "Rabbit publish nacked: " + messageName + ", " + reason);
+        }
+        if (correlationData.getReturned() != null) {
+            throw new BizException(ErrorCode.INTERNAL_ERROR, "Rabbit publish returned: " + messageName);
         }
     }
 

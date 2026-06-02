@@ -1,8 +1,6 @@
 package com.smart.exam.auth.service;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smart.exam.auth.dto.LoginRequest;
 import com.smart.exam.auth.entity.SysUserEntity;
 import com.smart.exam.auth.mapper.RolePermissionReadMapper;
@@ -23,7 +21,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HexFormat;
 import java.util.LinkedHashSet;
@@ -38,16 +35,14 @@ public class AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
     private static final Duration LOGIN_DEDUP_TTL = Duration.ofSeconds(3);
-    private static final Duration USER_CACHE_TTL = Duration.ofMinutes(10);
     private static final String LOGIN_DEDUP_PREFIX = "auth:login:dedup:";
-    private static final String USER_CACHE_PREFIX = "auth:user:";
 
     private final JwtUtil jwtUtil;
     private final SysUserMapper sysUserMapper;
     private final RolePermissionReadMapper rolePermissionReadMapper;
     private final StringRedisTemplate redisTemplate;
-    private final ObjectMapper objectMapper;
     private final boolean bootstrapDemoUsers;
+    private final boolean defaultPermissionsEnabled;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
     private final Map<String, DemoUser> demoUsers = Map.of(
             "admin", new DemoUser(10001L, "admin", "123456", "ADMIN", "System Admin"),
@@ -115,14 +110,15 @@ public class AuthService {
                        SysUserMapper sysUserMapper,
                        RolePermissionReadMapper rolePermissionReadMapper,
                        StringRedisTemplate redisTemplate,
-                       ObjectMapper objectMapper,
-                       @Value("${smart-exam.auth.bootstrap-demo-users:false}") boolean bootstrapDemoUsers) {
+                       @Value("${smart-exam.auth.bootstrap-demo-users:false}") boolean bootstrapDemoUsers,
+                       @Value("${smart-exam.auth.security.default-permissions-enabled:false}")
+                       boolean defaultPermissionsEnabled) {
         this.jwtUtil = jwtUtil;
         this.sysUserMapper = sysUserMapper;
         this.rolePermissionReadMapper = rolePermissionReadMapper;
         this.redisTemplate = redisTemplate;
-        this.objectMapper = objectMapper;
         this.bootstrapDemoUsers = bootstrapDemoUsers;
+        this.defaultPermissionsEnabled = defaultPermissionsEnabled;
     }
 
     public Map<String, Object> login(LoginRequest request) {
@@ -182,7 +178,6 @@ public class AuthService {
         try {
             SysUserEntity existing = sysUserMapper.selectById(demoUser.id());
             if (existing != null) {
-                cacheUser(existing);
                 return existing;
             }
 
@@ -194,7 +189,6 @@ public class AuthService {
             entity.setRole(demoUser.role());
             entity.setStatus(1);
             sysUserMapper.insert(entity);
-            evictUserCache(demoUser.username());
             return entity;
         } catch (Exception ex) {
             log.warn("Failed to create demo user in DB, username={}", demoUser.username(), ex);
@@ -217,20 +211,11 @@ public class AuthService {
     }
 
     private SysUserEntity findByUsername(String username) {
-        SysUserEntity cached = getCachedUser(username);
-        if (cached != null) {
-            return cached;
-        }
-
-        SysUserEntity entity = sysUserMapper.selectOne(
+        return sysUserMapper.selectOne(
                 Wrappers.lambdaQuery(SysUserEntity.class)
                         .eq(SysUserEntity::getUsername, username)
                         .last("limit 1")
         );
-        if (entity != null) {
-            cacheUser(entity);
-        }
-        return entity;
     }
 
     private boolean passwordMatches(String rawPassword, String storedPasswordHash) {
@@ -251,41 +236,6 @@ public class AuthService {
         return StringUtils.hasText(value) && value.startsWith("$2");
     }
 
-    private void evictUserCache(String username) {
-        try {
-            redisTemplate.delete(USER_CACHE_PREFIX + username);
-        } catch (Exception ex) {
-            log.warn("Failed to evict user cache", ex);
-        }
-    }
-
-    private SysUserEntity getCachedUser(String username) {
-        try {
-            String raw = redisTemplate.opsForValue().get(USER_CACHE_PREFIX + username);
-            if (!StringUtils.hasText(raw)) {
-                return null;
-            }
-            return objectMapper.readValue(raw, SysUserEntity.class);
-        } catch (Exception ex) {
-            log.warn("Failed to read cached user, username={}", username, ex);
-            return null;
-        }
-    }
-
-    private void cacheUser(SysUserEntity user) {
-        try {
-            redisTemplate.opsForValue().set(
-                    USER_CACHE_PREFIX + user.getUsername(),
-                    objectMapper.writeValueAsString(user),
-                    USER_CACHE_TTL
-            );
-        } catch (JsonProcessingException ex) {
-            log.warn("Failed to serialize user cache", ex);
-        } catch (Exception ex) {
-            log.warn("Failed to write user cache", ex);
-        }
-    }
-
     private String sha256(String raw) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -297,11 +247,17 @@ public class AuthService {
 
     private List<String> loadPermissionCodes(String role) {
         String normalizedRole = normalizeRole(role);
-        List<String> dbPermissions = Collections.emptyList();
+        List<String> dbPermissions;
         try {
             dbPermissions = rolePermissionReadMapper.selectPermissionCodesByRoleCode(normalizedRole);
         } catch (Exception ex) {
-            log.warn("Failed to load role permissions from DB, role={}", normalizedRole, ex);
+            if (defaultPermissionsEnabled) {
+                log.warn("Failed to load role permissions from DB, fallback to default permissions, role={}",
+                        normalizedRole,
+                        ex);
+                return defaultPermissionCodes(normalizedRole);
+            }
+            throw new BizException(ErrorCode.INTERNAL_ERROR, "Failed to load role permissions");
         }
 
         Set<String> merged = new LinkedHashSet<>();
@@ -309,10 +265,14 @@ public class AuthService {
             merged.addAll(normalizePermissions(dbPermissions));
         }
 
-        if (merged.isEmpty()) {
-            merged.addAll(defaultPermissionsByRole.getOrDefault(normalizedRole, List.of()));
+        if (merged.isEmpty() && defaultPermissionsEnabled) {
+            return defaultPermissionCodes(normalizedRole);
         }
         return new ArrayList<>(merged);
+    }
+
+    private List<String> defaultPermissionCodes(String normalizedRole) {
+        return new ArrayList<>(defaultPermissionsByRole.getOrDefault(normalizedRole, List.of()));
     }
 
     private String normalizeRole(String role) {

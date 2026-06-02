@@ -55,6 +55,7 @@ smart-exam:
     bootstrap-demo-users: ${BOOTSTRAP_DEMO_USERS:false}
     security:
       allow-legacy-plain-password: ${ALLOW_LEGACY_PLAIN_PASSWORD:false}
+      default-permissions-enabled: ${DEFAULT_PERMISSIONS_ENABLED:false}
 
 management:
   endpoints:

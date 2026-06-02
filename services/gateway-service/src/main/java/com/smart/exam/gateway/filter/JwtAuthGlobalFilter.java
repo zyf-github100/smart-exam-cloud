@@ -29,6 +29,11 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
             "/api/v1/auth/login",
             "/actuator"
     );
+    private static final List<String> TRUSTED_AUTH_HEADERS = List.of(
+            "X-User-Id",
+            "X-Role",
+            "X-Permissions"
+    );
 
     private final JwtUtil jwtUtil;
 
@@ -63,13 +68,15 @@ public class JwtAuthGlobalFilter implements GlobalFilter, Ordered {
             return unauthorized(exchange, ErrorCode.UNAUTHORIZED.getMessage());
         }
 
-        ServerHttpRequest.Builder builder = exchange.getRequest()
-                .mutate()
-                .header("X-User-Id", userId)
-                .header("X-Role", role.toUpperCase(Locale.ROOT));
-        if (StringUtils.hasText(permissions)) {
-            builder.header("X-Permissions", permissions);
-        }
+        ServerHttpRequest.Builder builder = exchange.getRequest().mutate();
+        builder.headers(headers -> {
+            TRUSTED_AUTH_HEADERS.forEach(headers::remove);
+            headers.set("X-User-Id", userId);
+            headers.set("X-Role", role.toUpperCase(Locale.ROOT));
+            if (StringUtils.hasText(permissions)) {
+                headers.set("X-Permissions", permissions);
+            }
+        });
 
         ServerHttpRequest request = builder.build();
 

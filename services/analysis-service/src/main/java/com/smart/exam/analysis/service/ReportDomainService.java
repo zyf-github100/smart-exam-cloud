@@ -68,40 +68,46 @@ public class ReportDomainService {
 
     @Transactional
     public void onScorePublished(ScorePublishedEvent event) {
-        if (!acquireEventDedup(event.getEventId())) {
+        boolean eventDedupAcquired = acquireEventDedup(event.getEventId());
+        if (!eventDedupAcquired) {
             return;
         }
 
-        Long examId = parseLong("examId", event.getExamId());
-        Long sessionId = parseLong("sessionId", event.getSessionId());
-        Long userId = parseLong("userId", event.getUserId());
+        try {
+            Long examId = parseLong("examId", event.getExamId());
+            Long sessionId = parseLong("sessionId", event.getSessionId());
+            Long userId = parseLong("userId", event.getUserId());
 
-        ScoreEntity entity = scoreMapper.selectOne(
-                Wrappers.lambdaQuery(ScoreEntity.class)
-                        .eq(ScoreEntity::getSessionId, sessionId)
-                        .last("limit 1")
-        );
+            ScoreEntity entity = scoreMapper.selectOne(
+                    Wrappers.lambdaQuery(ScoreEntity.class)
+                            .eq(ScoreEntity::getSessionId, sessionId)
+                            .last("limit 1")
+            );
 
-        if (entity == null) {
-            entity = new ScoreEntity();
-            entity.setId(idGenerator.nextId());
-            entity.setExamId(examId);
-            entity.setSessionId(sessionId);
-            entity.setUserId(userId);
-            entity.setTotalScore(BigDecimal.valueOf(event.getTotalScore()).setScale(2, RoundingMode.HALF_UP));
-            entity.setClassId(null);
-            entity.setCreatedAt(LocalDateTime.now());
-            scoreMapper.insert(entity);
-        } else {
-            entity.setExamId(examId);
-            entity.setUserId(userId);
-            entity.setTotalScore(BigDecimal.valueOf(event.getTotalScore()).setScale(2, RoundingMode.HALF_UP));
-            entity.setCreatedAt(LocalDateTime.now());
-            scoreMapper.updateById(entity);
+            if (entity == null) {
+                entity = new ScoreEntity();
+                entity.setId(idGenerator.nextId());
+                entity.setExamId(examId);
+                entity.setSessionId(sessionId);
+                entity.setUserId(userId);
+                entity.setTotalScore(BigDecimal.valueOf(event.getTotalScore()).setScale(2, RoundingMode.HALF_UP));
+                entity.setClassId(null);
+                entity.setCreatedAt(LocalDateTime.now());
+                scoreMapper.insert(entity);
+            } else {
+                entity.setExamId(examId);
+                entity.setUserId(userId);
+                entity.setTotalScore(BigDecimal.valueOf(event.getTotalScore()).setScale(2, RoundingMode.HALF_UP));
+                entity.setCreatedAt(LocalDateTime.now());
+                scoreMapper.updateById(entity);
+            }
+
+            replaceSessionQuestionScores(event, examId, sessionId);
+            evictReportCache(event.getExamId());
+        } catch (RuntimeException ex) {
+            releaseEventDedup(event.getEventId());
+            throw ex;
         }
-
-        replaceSessionQuestionScores(event, examId, sessionId);
-        evictReportCache(event.getExamId());
     }
 
     public Map<String, Object> scoreDistribution(String examId, String operatorId, String role) {
@@ -238,6 +244,14 @@ public class ReportDomainService {
         } catch (Exception ex) {
             log.warn("Event dedup unavailable in analysis service", ex);
             return true;
+        }
+    }
+
+    private void releaseEventDedup(String eventId) {
+        try {
+            redisTemplate.delete(EVENT_DEDUP_PREFIX + eventId);
+        } catch (Exception ex) {
+            log.warn("Event dedup release failed in analysis service, eventId={}", eventId, ex);
         }
     }
 

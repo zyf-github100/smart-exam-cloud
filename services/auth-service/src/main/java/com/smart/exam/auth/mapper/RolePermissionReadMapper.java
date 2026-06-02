@@ -12,9 +12,9 @@ public interface RolePermissionReadMapper {
     @Select("""
             SELECT rp.permission_code
             FROM admin_db.sys_role_permission rp
-            LEFT JOIN admin_db.sys_permission p ON p.permission_code = rp.permission_code
+            INNER JOIN admin_db.sys_permission p ON p.permission_code = rp.permission_code
             WHERE rp.role_code = #{roleCode}
-              AND (p.status = 1 OR p.status IS NULL)
+              AND p.status = 1
             ORDER BY rp.permission_code
             """)
     List<String> selectPermissionCodesByRoleCode(@Param("roleCode") String roleCode);

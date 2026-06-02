@@ -14,6 +14,14 @@ import java.util.List;
 public interface ExamSessionMapper extends BaseMapper<ExamSessionEntity> {
 
     @Select("""
+            SELECT *
+            FROM exam_db.e_exam_session
+            WHERE id = #{sessionId}
+            FOR UPDATE
+            """)
+    ExamSessionEntity selectByIdForUpdate(@Param("sessionId") Long sessionId);
+
+    @Select("""
             SELECT es.id
             FROM exam_db.e_exam_session es
             INNER JOIN exam_db.e_exam ee ON ee.id = es.exam_id
@@ -35,4 +43,11 @@ public interface ExamSessionMapper extends BaseMapper<ExamSessionEntity> {
                               @Param("expectedStatus") String expectedStatus,
                               @Param("nextStatus") String nextStatus,
                               @Param("submitTime") LocalDateTime submitTime);
+
+    @Update("""
+            UPDATE exam_db.e_exam_session
+            SET switch_screen_count = COALESCE(switch_screen_count, 0) + 1
+            WHERE id = #{sessionId}
+            """)
+    int incrementSwitchScreenCount(@Param("sessionId") Long sessionId);
 }
