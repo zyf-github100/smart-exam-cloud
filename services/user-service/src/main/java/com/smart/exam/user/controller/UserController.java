@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Collection;
+import java.util.Locale;
 import java.util.Map;
 
 @RestController
@@ -47,10 +48,15 @@ public class UserController {
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-Role", required = false) String role,
             @RequestHeader(value = "X-Permissions", required = false) String permissions) {
-        requireTeacherOrAdmin(userId, role, permissions, PermissionCodes.USER_PROFILE_VIEW);
+        String currentUserId = RoleGuard.requireUserId(userId);
+        String currentRole = RoleGuard.requireRole(role, "ADMIN", "TEACHER");
+        RoleGuard.requirePermission(currentRole, permissions, PermissionCodes.USER_PROFILE_VIEW);
         UserProfile profile = userProfileService.findById(id);
         if (profile == null) {
             throw new BizException(ErrorCode.NOT_FOUND, "User not found");
+        }
+        if (!canViewProfile(currentUserId, currentRole, profile)) {
+            throw new BizException(ErrorCode.FORBIDDEN, "Access denied");
         }
         return ApiResponse.ok(profile);
     }
@@ -60,13 +66,29 @@ public class UserController {
             @RequestHeader(value = "X-User-Id", required = false) String userId,
             @RequestHeader(value = "X-Role", required = false) String role,
             @RequestHeader(value = "X-Permissions", required = false) String permissions) {
-        requireTeacherOrAdmin(userId, role, permissions, PermissionCodes.USER_LIST_VIEW);
-        return ApiResponse.ok(userProfileService.listAll());
+        String currentRole = requireTeacherOrAdmin(userId, role, permissions, PermissionCodes.USER_LIST_VIEW);
+        return ApiResponse.ok(userProfileService.listVisibleForRole(currentRole));
     }
 
-    private void requireTeacherOrAdmin(String userId, String role, String permissions, String requiredPermission) {
+    private String requireTeacherOrAdmin(String userId, String role, String permissions, String requiredPermission) {
         RoleGuard.requireUserId(userId);
-        RoleGuard.requireRole(role, "ADMIN", "TEACHER");
-        RoleGuard.requirePermission(role, permissions, requiredPermission);
+        String currentRole = RoleGuard.requireRole(role, "ADMIN", "TEACHER");
+        RoleGuard.requirePermission(currentRole, permissions, requiredPermission);
+        return currentRole;
+    }
+
+    private boolean canViewProfile(String currentUserId, String currentRole, UserProfile profile) {
+        String normalizedRole = normalizeRole(currentRole);
+        if ("ADMIN".equals(normalizedRole)) {
+            return true;
+        }
+        if ("TEACHER".equals(normalizedRole)) {
+            return currentUserId.equals(profile.getId()) || "STUDENT".equals(normalizeRole(profile.getRole()));
+        }
+        return currentUserId.equals(profile.getId());
+    }
+
+    private String normalizeRole(String role) {
+        return role == null ? "" : role.trim().toUpperCase(Locale.ROOT);
     }
 }

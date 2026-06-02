@@ -558,9 +558,17 @@ public class ExamDomainService {
         boolean deadlineExceeded = !now.isBefore(exam.getEndTime());
         LocalDateTime effectiveSubmitTime = deadlineExceeded ? exam.getEndTime() : now;
 
+        int updated = examSessionMapper.updateStatusIfMatched(
+                sessionLongId,
+                SessionStatus.IN_PROGRESS.name(),
+                SessionStatus.SUBMITTED.name(),
+                effectiveSubmitTime
+        );
+        if (updated != 1) {
+            throw new BizException(ErrorCode.CONFLICT, "Session already submitted");
+        }
         session.setStatus(SessionStatus.SUBMITTED.name());
         session.setSubmitTime(effectiveSubmitTime);
-        examSessionMapper.updateById(session);
 
         ExamSubmittedEvent event = new ExamSubmittedEvent();
         event.setEventId(UUID.randomUUID().toString());
