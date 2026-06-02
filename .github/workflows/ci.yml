@@ -26,5 +26,11 @@ jobs:
           cache: npm
           cache-dependency-path: smart-exam-web/package-lock.json
 
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
       - name: Run verification
         run: bash ./scripts/ci/verify.sh
