@@ -15,6 +15,20 @@ flutter pub get
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:9000/api/v1
 ```
 
+## Tests
+
+```bash
+cd smart-exam-flutter
+flutter test
+```
+
+Current widget coverage includes:
+
+- Login screen rendering without a local session
+- Pre-exam checks for network, battery state, and rule confirmation
+- Local answer draft conflict prompts during session restore
+- Result-page ready state, retry-after-error state, waiting-for-grading state, and locked-detail state
+
 ## Current scope
 
 - Login page with local session restore
@@ -49,5 +63,5 @@ The app reads the backend gateway address from `API_BASE_URL`.
 
 1. Add richer device capability checks such as battery and screen security state.
 2. Add richer result states for manual grading and release timing.
-3. Add mobile UI integration tests for the exam session flow.
+3. Extend beyond widget tests into emulator or device-level integration runs for the exam session flow.
 4. Add iOS-specific screen recording and screen capture risk detection.

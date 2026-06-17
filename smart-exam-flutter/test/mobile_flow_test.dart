@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:smart_exam_flutter/src/config/app_config.dart';
+import 'package:smart_exam_flutter/src/core/network/api_exception.dart';
 import 'package:smart_exam_flutter/src/core/storage/answer_draft_storage.dart';
 import 'package:smart_exam_flutter/src/features/app/smart_exam_controller.dart';
 import 'package:smart_exam_flutter/src/features/exams/exam_precheck_page.dart';
@@ -182,6 +183,83 @@ void main() {
     expect(find.text('Java 中哪个关键字用于继承？'), findsOneWidget);
     expect(find.text('解析'), findsOneWidget);
   });
+
+  testWidgets('result page shows retry state when loading fails', (
+    tester,
+  ) async {
+    final controller = _FakeSmartExamController(
+      resultSequence: [
+        const ApiException(message: '成绩服务暂时不可用'),
+        _readyResult(detailReleased: true),
+      ],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ExamResultPage(
+          controller: controller,
+          exam: _runningExam(sessionId: 'session-1'),
+          sessionId: 'session-1',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.error_outline_rounded), findsOneWidget);
+    expect(controller.resultFetchCount, 1);
+
+    await tester.tap(find.byType(FilledButton));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.error_outline_rounded), findsNothing);
+    expect(find.text('成绩总览'), findsOneWidget);
+    expect(controller.resultFetchCount, 2);
+  });
+
+  testWidgets('result page keeps waiting state for unfinished grading', (
+    tester,
+  ) async {
+    final controller = _FakeSmartExamController(result: _notReadyResult());
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ExamResultPage(
+          controller: controller,
+          exam: _runningExam(sessionId: 'session-1'),
+          sessionId: 'session-1',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.rule_folder_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.access_time_rounded), findsOneWidget);
+    expect(find.text('题目明细'), findsNothing);
+  });
+
+  testWidgets('result page locks detail content before release', (
+    tester,
+  ) async {
+    final controller = _FakeSmartExamController(
+      result: _readyResult(detailReleased: false),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ExamResultPage(
+          controller: controller,
+          exam: _runningExam(sessionId: 'session-1'),
+          sessionId: 'session-1',
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, -600));
+    await tester.pumpAndSettle();
+
+    expect(find.text('题目明细'), findsOneWidget);
+    expect(find.text('待开放'), findsWidgets);
+  });
 }
 
 _FakeConnectivityPlatform _installConnectivity(
@@ -237,9 +315,11 @@ class _FakeSmartExamController extends SmartExamController {
     ExamPaperModel? paper,
     List<SessionAnswerModel>? answers,
     StudentSessionResult? result,
+    List<Object>? resultSequence,
   }) : paper = paper ?? _paper(),
        answers = answers ?? const [],
        result = result ?? _notReadyResult(),
+       resultSequence = List<Object>.from(resultSequence ?? [result ?? _notReadyResult()]),
        super(
          config: const AppConfig(
            appName: 'test',
@@ -250,7 +330,10 @@ class _FakeSmartExamController extends SmartExamController {
   final ExamPaperModel paper;
   final List<SessionAnswerModel> answers;
   final StudentSessionResult result;
+  final List<Object> resultSequence;
   List<AnswerDraft> savedAnswers = const [];
+  int resultFetchCount = 0;
+  int _resultIndex = 0;
 
   @override
   Future<ExamPaperModel> fetchSessionPaper(String sessionId) async => paper;
@@ -275,7 +358,16 @@ class _FakeSmartExamController extends SmartExamController {
   @override
   Future<StudentSessionResult> fetchStudentSessionResult(
     String sessionId,
-  ) async => result;
+  ) async {
+    resultFetchCount += 1;
+    final current = resultSequence[
+      _resultIndex < resultSequence.length ? _resultIndex++ : resultSequence.length - 1
+    ];
+    if (current is ApiException) {
+      throw current;
+    }
+    return current as StudentSessionResult;
+  }
 }
 
 StudentSessionResult _notReadyResult() {
@@ -296,6 +388,45 @@ StudentSessionResult _notReadyResult() {
       publishedAt: null,
     ),
     questions: [],
+  );
+}
+
+StudentSessionResult _readyResult({required bool detailReleased}) {
+  return StudentSessionResult(
+    sessionId: 'session-1',
+    examId: 'exam-1',
+    sessionStatus: 'SUBMITTED',
+    submittedAt: DateTime(2026, 4, 24, 10, 30),
+    detailReleased: detailReleased,
+    detailMessage: detailReleased ? '' : '标准答案暂未开放',
+    ready: true,
+    taskStatus: 'DONE',
+    message: '',
+    summary: ResultSummary(
+      objectiveScore: 8,
+      subjectiveScore: 0,
+      totalScore: 8,
+      publishedAt: DateTime(2026, 4, 24, 10, 35),
+    ),
+    questions: const [
+      QuestionResult(
+        questionId: 'q1',
+        orderNo: 1,
+        type: 'SINGLE',
+        stem: 'Java 中哪个关键字用于继承？',
+        analysis: 'Java 使用 extends 表示继承。',
+        options: [
+          QuestionResultOption(key: 'A', text: 'extends'),
+          QuestionResultOption(key: 'B', text: 'implements'),
+        ],
+        standardAnswer: 'A',
+        myAnswer: 'A',
+        maxScore: 10,
+        gotScore: 8,
+        objective: true,
+        correct: true,
+      ),
+    ],
   );
 }
 
