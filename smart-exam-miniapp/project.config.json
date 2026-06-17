@@ -1,14 +1,28 @@
 {
-  "appid": "touristappid",
+  "appid": "wxc0ad166fe02e0f26",
   "compileType": "miniprogram",
-  "libVersion": "3.6.5",
-  "miniprogramRoot": "./",
+  "libVersion": "3.16.1",
+  "miniprogramRoot": "",
   "projectname": "smart-exam-miniapp",
   "setting": {
     "es6": true,
     "enhance": true,
     "postcss": true,
     "minified": true,
-    "urlCheck": false
+    "urlCheck": false,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    }
+  },
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
+  "condition": {},
+  "editorSetting": {
+    "tabIndent": "insertSpaces",
+    "tabSize": 2
   }
 }

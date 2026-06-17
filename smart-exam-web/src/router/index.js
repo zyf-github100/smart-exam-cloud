@@ -138,8 +138,7 @@ const router = createRouter({
   scrollBehavior: () => ({ left: 0, top: 0 }),
 })
 
-router.beforeEach((to) => {
-  const user = getSessionUser()
+export const resolveRouteGuard = (to, user = getSessionUser()) => {
   if (to.path === '/login') {
     if (user) {
       return { path: getDefaultAccessiblePath(user), replace: true }
@@ -177,6 +176,8 @@ router.beforeEach((to) => {
   const fallbackPath = getDefaultAccessiblePath(user)
   if (to.path === fallbackPath) return true
   return { path: fallbackPath, replace: true }
-})
+}
+
+router.beforeEach((to) => resolveRouteGuard(to))
 
 export default router

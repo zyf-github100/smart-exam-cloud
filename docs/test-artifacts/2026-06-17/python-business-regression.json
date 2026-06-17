@@ -1,0 +1,214 @@
+{
+  "generatedAt": "2026-06-17T19:33:18",
+  "gateway": "http://127.0.0.1:60290",
+  "summary": {
+    "total": 18,
+    "passed": 18,
+    "failed": 0
+  },
+  "resolvedContext": {
+    "teacherExamId": "exam-1",
+    "studentExamId": "exam-1",
+    "sessionId": "session-1"
+  },
+  "steps": [
+    {
+      "name": "gateway-health",
+      "method": "GET",
+      "path": "/actuator/health",
+      "success": true,
+      "status": "passed",
+      "duration_ms": 26,
+      "detail": "OK",
+      "http_status": 200,
+      "app_code": null
+    },
+    {
+      "name": "teacher-login",
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "success": true,
+      "status": "passed",
+      "duration_ms": 1,
+      "detail": "OK",
+      "http_status": 200,
+      "app_code": 0
+    },
+    {
+      "name": "teacher-me",
+      "method": "GET",
+      "path": "/api/v1/users/me",
+      "success": true,
+      "status": "passed",
+      "duration_ms": 1,
+      "detail": "OK",
+      "http_status": 200,
+      "app_code": 0
+    },
+    {
+      "name": "teacher-questions",
+      "method": "GET",
+      "path": "/api/v1/questions",
+      "success": true,
+      "status": "passed",
+      "duration_ms": 1,
+      "detail": "OK",
+      "http_status": 200,
+      "app_code": 0
+    },
+    {
+      "name": "teacher-papers",
+      "method": "GET",
+      "path": "/api/v1/papers",
+      "success": true,
+      "status": "passed",
+      "duration_ms": 1,
+      "detail": "OK",
+      "http_status": 200,
+      "app_code": 0
+    },
+    {
+      "name": "teacher-exams",
+      "method": "GET",
+      "path": "/api/v1/exams/teachers/me",
+      "success": true,
+      "status": "passed",
+      "duration_ms": 1,
+      "detail": "OK",
+      "http_status": 200,
+      "app_code": 0
+    },
+    {
+      "name": "report-score-distribution",
+      "method": "GET",
+      "path": "/api/v1/reports/exams/exam-1/score-distribution",
+      "success": true,
+      "status": "passed",
+      "duration_ms": 0,
+      "detail": "OK",
+      "http_status": 200,
+      "app_code": 0
+    },
+    {
+      "name": "report-question-accuracy-top",
+      "method": "GET",
+      "path": "/api/v1/reports/exams/exam-1/question-accuracy-top",
+      "success": true,
+      "status": "passed",
+      "duration_ms": 1,
+      "detail": "OK",
+      "http_status": 200,
+      "app_code": 0
+    },
+    {
+      "name": "report-score-sheet",
+      "method": "GET",
+      "path": "/api/v1/reports/exams/exam-1/score-sheet",
+      "success": true,
+      "status": "passed",
+      "duration_ms": 0,
+      "detail": "OK",
+      "http_status": 200,
+      "app_code": 0
+    },
+    {
+      "name": "student-login",
+      "method": "POST",
+      "path": "/api/v1/auth/login",
+      "success": true,
+      "status": "passed",
+      "duration_ms": 1,
+      "detail": "OK",
+      "http_status": 200,
+      "app_code": 0
+    },
+    {
+      "name": "student-me",
+      "method": "GET",
+      "path": "/api/v1/users/me",
+      "success": true,
+      "status": "passed",
+      "duration_ms": 1,
+      "detail": "OK",
+      "http_status": 200,
+      "app_code": 0
+    },
+    {
+      "name": "student-exams",
+      "method": "GET",
+      "path": "/api/v1/exams/students/me",
+      "success": true,
+      "status": "passed",
+      "duration_ms": 0,
+      "detail": "OK",
+      "http_status": 200,
+      "app_code": 0
+    },
+    {
+      "name": "student-start-exam",
+      "method": "POST",
+      "path": "/api/v1/exams/exam-1/start",
+      "success": true,
+      "status": "passed",
+      "duration_ms": 1,
+      "detail": "OK",
+      "http_status": 200,
+      "app_code": 0
+    },
+    {
+      "name": "student-session-paper",
+      "method": "GET",
+      "path": "/api/v1/sessions/session-1/paper",
+      "success": true,
+      "status": "passed",
+      "duration_ms": 0,
+      "detail": "OK",
+      "http_status": 200,
+      "app_code": 0
+    },
+    {
+      "name": "student-session-answers",
+      "method": "GET",
+      "path": "/api/v1/sessions/session-1/answers",
+      "success": true,
+      "status": "passed",
+      "duration_ms": 0,
+      "detail": "OK",
+      "http_status": 200,
+      "app_code": 0
+    },
+    {
+      "name": "student-save-answers",
+      "method": "PUT",
+      "path": "/api/v1/sessions/session-1/answers",
+      "success": true,
+      "status": "passed",
+      "duration_ms": 0,
+      "detail": "OK",
+      "http_status": 200,
+      "app_code": 0
+    },
+    {
+      "name": "student-submit-session",
+      "method": "POST",
+      "path": "/api/v1/sessions/session-1/submit",
+      "success": true,
+      "status": "passed",
+      "duration_ms": 19,
+      "detail": "OK",
+      "http_status": 200,
+      "app_code": 0
+    },
+    {
+      "name": "student-session-result",
+      "method": "GET",
+      "path": "/api/v1/grading/sessions/session-1/result",
+      "success": true,
+      "status": "passed",
+      "duration_ms": 0,
+      "detail": "OK",
+      "http_status": 200,
+      "app_code": 0
+    }
+  ]
+}

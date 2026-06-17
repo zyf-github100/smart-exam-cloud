@@ -1,0 +1,4 @@
+﻿Date: 2026-06-17
+Reason: flutter SDK not found in current workstation environment.
+Checks: where.exe flutter -> not found; where.exe dart -> not found.
+Impact: Added mobile exception-flow widget tests but could not execute flutter test in this environment.

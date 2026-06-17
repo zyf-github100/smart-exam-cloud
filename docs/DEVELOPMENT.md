@@ -198,7 +198,12 @@ Linux/macOS 也可使用：
 bash ./scripts/ci/verify.sh
 ```
 
-该脚本会串行执行后端 Maven 测试、Web 端安装/测试/构建、微信小程序静态校验、Flutter 依赖安装与测试，适合提交前自检。
+该脚本会串行执行后端 Maven 测试、Web 端安装/测试/构建、微信小程序静态校验与轻量流程测试、Flutter 依赖安装与测试，适合提交前自检。
+
+当前移动端校验基线包括：
+
+- 微信小程序：`node scripts/ci/check-miniapp.js` 做静态校验，`node scripts/ci/test-miniapp.js` 做轻量流程测试，覆盖鉴权头拼装、401 失效回登录、空账号拦截、学生登录成功跳转、教师账号拦截。
+- Flutter App：`flutter test` 运行 `smart-exam-flutter/test/` 下的 widget 用例，当前覆盖登录页渲染、考前检查、本地草稿冲突恢复、成绩页加载失败重试、待评阅、明细未开放等状态。
 
 ### 8.3 推荐启动顺序
 

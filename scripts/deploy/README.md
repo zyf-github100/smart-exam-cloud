@@ -70,3 +70,28 @@ python scripts/deploy/smoke-check.py `
 ```
 
 Adjust the gateway address and account according to the deployed environment.
+
+## 4. Business regression
+
+Use the regression script when you need a broader role-based chain that leaves a
+JSON report behind.
+
+```powershell
+python scripts/deploy/business_regression.py `
+  --gateway http://127.0.0.1:9000 `
+  --teacher-username teacher001 `
+  --teacher-password 123456 `
+  --student-username student001 `
+  --student-password 123456 `
+  --allow-mutation `
+  --save-answers-json docs/test-artifacts/2026-06-17/student-save-answers.json `
+  --report-file docs/test-artifacts/2026-06-17/python-business-regression.json
+```
+
+Recommended usage:
+
+- Omit `--allow-mutation` for read-only巡检.
+- Provide `--teacher-exam-id`, `--student-exam-id`, or `--session-id` when the
+  environment does not expose a suitable exam/session automatically.
+- Keep the generated JSON report with the current test batch so the execution
+  trail and resolved IDs are auditable.

@@ -34,6 +34,7 @@ try {
     Invoke-CheckedCommand -Label 'Web tests' -FilePath 'npm' -Arguments @('run', 'test:ci') -WorkingDirectory (Join-Path $repoRoot 'smart-exam-web')
     Invoke-CheckedCommand -Label 'Web build' -FilePath 'npm' -Arguments @('run', 'build') -WorkingDirectory (Join-Path $repoRoot 'smart-exam-web')
     Invoke-CheckedCommand -Label 'Miniapp static checks' -FilePath 'node' -Arguments @('scripts/ci/check-miniapp.js')
+    Invoke-CheckedCommand -Label 'Miniapp tests' -FilePath 'node' -Arguments @('scripts/ci/test-miniapp.js')
     Invoke-CheckedCommand -Label 'Flutter dependency install' -FilePath 'flutter' -Arguments @('pub', 'get') -WorkingDirectory (Join-Path $repoRoot 'smart-exam-flutter')
     Invoke-CheckedCommand -Label 'Flutter tests' -FilePath 'flutter' -Arguments @('test') -WorkingDirectory (Join-Path $repoRoot 'smart-exam-flutter')
 } finally {
